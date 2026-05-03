@@ -215,6 +215,16 @@ function UserDialog({
         className="flex w-full max-w-md flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-800 dark:bg-slate-900"
       >
         <h3 className="text-lg font-semibold">{isCreate ? "Create user" : "Edit user"}</h3>
+        {isCreate && (
+          <p className="text-xs text-slate-500">
+            On create, the <code className="font-mono">user_invitation</code> email template
+            (if defined) is sent to the new user with{" "}
+            <code className="font-mono">{"{{name}}"}</code>,{" "}
+            <code className="font-mono">{"{{email}}"}</code>,{" "}
+            <code className="font-mono">{"{{password}}"}</code>, and{" "}
+            <code className="font-mono">{"{{loginUrl}}"}</code> available as variables.
+          </p>
+        )}
         <Field label="Name" htmlFor="name">
           <input
             id="name"

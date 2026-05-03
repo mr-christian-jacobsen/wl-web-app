@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { TemplateNotFoundError, sendTemplatedEmail } from "@/lib/email";
 import { hashPassword } from "@/lib/password";
 import { requireSuperAdmin } from "@/lib/super-admin";
 import { adminCreateUserSchema } from "@/lib/validators";
+
+const INVITATION_TEMPLATE_KEY = "user_invitation";
 
 const SAFE_SELECT = {
   id: true,
@@ -39,8 +42,9 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await hashPassword(parsed.data.password);
+  let user;
   try {
-    const user = await prisma.user.create({
+    user = await prisma.user.create({
       data: {
         email: parsed.data.email,
         name: parsed.data.name,
@@ -49,11 +53,31 @@ export async function POST(req: Request) {
       },
       select: SAFE_SELECT,
     });
-    return NextResponse.json({ user }, { status: 201 });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json({ error: "Email already in use" }, { status: 409 });
     }
     throw err;
   }
+
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  try {
+    await sendTemplatedEmail(INVITATION_TEMPLATE_KEY, user.email, {
+      name: user.name,
+      email: user.email,
+      password: parsed.data.password,
+      appUrl,
+      loginUrl: `${appUrl}/login`,
+    });
+  } catch (err) {
+    if (err instanceof TemplateNotFoundError) {
+      console.warn(
+        `[super-admin] No "${INVITATION_TEMPLATE_KEY}" email template found — skipping welcome email for ${user.email}. Create one at /super-admin/email-templates.`,
+      );
+    } else {
+      console.error(`[super-admin] Failed to send welcome email to ${user.email}:`, err);
+    }
+  }
+
+  return NextResponse.json({ user }, { status: 201 });
 }
