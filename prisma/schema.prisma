@@ -21,6 +21,7 @@ model User {
   resetTokens        PasswordResetToken[]
   verificationTokens EmailVerificationToken[]
   usageSessions      UsageSession[]
+  emails             Email[]
 }
 
 model UsageSession {
@@ -93,4 +94,27 @@ model EmailVerificationToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Audit log of every transactional email the app attempts to send.
+/// Rows are created even when delivery fails or is skipped (no SMTP configured),
+/// so the table is the source of truth for "did the user get the email?".
+model Email {
+  id          String   @id @default(cuid())
+  to          String
+  type        String // "user_invitation" | "email_verification" | "password_reset" | "email_change_confirmation"
+  templateKey String? // null when the hardcoded fallback was rendered
+  subject     String
+  bodyText    String
+  bodyHtml    String?
+  status      String   @default("pending") // "pending" | "sent" | "failed" | "skipped"
+  error       String?
+  sentAt      DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([sentAt])
+  @@index([userId])
+  @@index([type])
 }

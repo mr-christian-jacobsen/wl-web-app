@@ -62,6 +62,7 @@ export async function POST(req: Request) {
     await sendUserInvitationEmail(user.email, {
       name: user.name,
       password: parsed.data.password,
+      userId: user.id,
     });
   } catch (err) {
     console.error(`[super-admin] Failed to send welcome email to ${user.email}:`, err);

@@ -42,7 +42,10 @@ export async function POST(req: Request) {
   const base = process.env.APP_URL ?? "http://localhost:3000";
   const verifyUrl = `${base}/verify-email/${token}`;
   try {
-    await sendEmailVerificationEmail(user.email, verifyUrl, { name: user.name });
+    await sendEmailVerificationEmail(user.email, verifyUrl, {
+      name: user.name,
+      userId: user.id,
+    });
   } catch (err) {
     console.error("[signup] Failed to send verification email", err);
   }
