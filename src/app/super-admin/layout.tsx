@@ -49,6 +49,12 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             Usage
           </Link>
           <Link
+            href="/super-admin/system-settings"
+            className="rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            System settings
+          </Link>
+          <Link
             href="/profile"
             className="rounded-md px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
           >

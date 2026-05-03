@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { escapeHtml, renderTemplate } from "@/lib/templates";
+import { KNOWN_TEMPLATES, escapeHtml, renderFallback, renderTemplate } from "@/lib/templates";
 
 describe("renderTemplate", () => {
   it("substitutes named variables", () => {
@@ -49,5 +49,34 @@ describe("escapeHtml", () => {
 
   it("leaves safe text alone", () => {
     expect(escapeHtml("Hello, world.")).toBe("Hello, world.");
+  });
+});
+
+describe("renderFallback", () => {
+  it("returns null for unknown keys", () => {
+    expect(renderFallback("does_not_exist", {})).toBeNull();
+  });
+
+  it("substitutes vars in subject, text and html for every known template", () => {
+    for (const t of KNOWN_TEMPLATES) {
+      const out = renderFallback(t.key, t.sampleVars);
+      expect(out).not.toBeNull();
+      expect(out!.subject).not.toContain("{{");
+      expect(out!.text).not.toContain("{{");
+      expect(out!.html).not.toBeNull();
+      expect(out!.html).not.toContain("{{");
+    }
+  });
+
+  it("escapes user-supplied values inside the html body", () => {
+    const out = renderFallback("user_invitation", {
+      name: '<script>alert("x")</script>',
+      email: "alex@example.com",
+      password: "p",
+      appUrl: "http://localhost:3000",
+      loginUrl: "http://localhost:3000/login",
+    });
+    expect(out!.html).toContain("&lt;script&gt;");
+    expect(out!.html).not.toContain("<script>");
   });
 });
