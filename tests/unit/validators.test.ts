@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  adminCreateUserSchema,
+  adminUpdateUserSchema,
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
@@ -44,6 +46,34 @@ describe("validators", () => {
   it("update-profile requires at least one field", () => {
     expect(updateProfileSchema.safeParse({ name: "foo" }).success).toBe(true);
     expect(updateProfileSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("admin-create-user requires email/name/password and defaults isSuperAdmin to false", () => {
+    const r = adminCreateUserSchema.parse({
+      email: "Admin@Example.com",
+      name: "Admin",
+      password: "abcdefgh",
+    });
+    expect(r.email).toBe("admin@example.com");
+    expect(r.isSuperAdmin).toBe(false);
+
+    const r2 = adminCreateUserSchema.parse({
+      email: "admin2@example.com",
+      name: "Admin 2",
+      password: "abcdefgh",
+      isSuperAdmin: true,
+    });
+    expect(r2.isSuperAdmin).toBe(true);
+  });
+
+  it("admin-update-user accepts partial updates", () => {
+    expect(adminUpdateUserSchema.safeParse({ name: "x" }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({ isSuperAdmin: true }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({ password: "abcdefgh" }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({}).success).toBe(false);
+    expect(
+      adminUpdateUserSchema.safeParse({ email: "not-email", isSuperAdmin: true }).success,
+    ).toBe(false);
   });
 
   it("change-password rejects identical old/new", () => {

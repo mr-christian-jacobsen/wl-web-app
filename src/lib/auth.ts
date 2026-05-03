@@ -13,6 +13,7 @@ declare module "next-auth" {
       email: string;
       name: string;
       avatarUrl: string | null;
+      isSuperAdmin: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -42,6 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           avatarUrl: user.avatarUrl,
+          isSuperAdmin: user.isSuperAdmin,
         };
       },
     }),

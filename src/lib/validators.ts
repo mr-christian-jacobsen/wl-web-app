@@ -55,3 +55,23 @@ export const changePasswordSchema = z
     path: ["newPassword"],
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+export const adminCreateUserSchema = z.object({
+  email: emailSchema,
+  name: nameSchema,
+  password: passwordSchema,
+  isSuperAdmin: z.boolean().optional().default(false),
+});
+export type AdminCreateUserInput = z.infer<typeof adminCreateUserSchema>;
+
+export const adminUpdateUserSchema = z
+  .object({
+    name: nameSchema.optional(),
+    email: emailSchema.optional(),
+    password: passwordSchema.optional(),
+    isSuperAdmin: z.boolean().optional(),
+  })
+  .refine((d) => Object.values(d).some((v) => v !== undefined), {
+    message: "Provide at least one field to update",
+  });
+export type AdminUpdateUserInput = z.infer<typeof adminUpdateUserSchema>;

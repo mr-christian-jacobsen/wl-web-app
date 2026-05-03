@@ -11,12 +11,19 @@ export const authConfig: NextAuthConfig = {
         token.email = user.email;
         token.name = user.name;
         token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
+        token.isSuperAdmin = (user as { isSuperAdmin?: boolean }).isSuperAdmin ?? false;
       }
       if (trigger === "update" && session) {
-        const s = session as { name?: string; email?: string; avatarUrl?: string | null };
+        const s = session as {
+          name?: string;
+          email?: string;
+          avatarUrl?: string | null;
+          isSuperAdmin?: boolean;
+        };
         if (typeof s.name === "string") token.name = s.name;
         if (typeof s.email === "string") token.email = s.email;
         if (s.avatarUrl !== undefined) token.avatarUrl = s.avatarUrl;
+        if (typeof s.isSuperAdmin === "boolean") token.isSuperAdmin = s.isSuperAdmin;
       }
       return token;
     },
@@ -25,6 +32,7 @@ export const authConfig: NextAuthConfig = {
       session.user.email = (token.email as string) ?? session.user.email;
       session.user.name = (token.name as string) ?? session.user.name;
       session.user.avatarUrl = (token.avatarUrl as string | null) ?? null;
+      session.user.isSuperAdmin = (token.isSuperAdmin as boolean) ?? false;
       return session;
     },
   },
