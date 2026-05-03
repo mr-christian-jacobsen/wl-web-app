@@ -37,6 +37,12 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             Email templates
           </Link>
           <Link
+            href="/super-admin/usage"
+            className="rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Usage
+          </Link>
+          <Link
             href="/profile"
             className="rounded-md px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
           >

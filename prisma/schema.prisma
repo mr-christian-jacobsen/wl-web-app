@@ -18,20 +18,41 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  sessions           Session[]
   resetTokens        PasswordResetToken[]
   verificationTokens EmailVerificationToken[]
+  usageSessions      UsageSession[]
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+model UsageSession {
+  id           String    @id @default(cuid())
+  userId       String
+  startedAt    DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  endedAt      DateTime?
+
+  // Server-detected
+  userAgent String?
+  ipHash    String?
+
+  // Parsed from User-Agent
+  os             String?
+  osVersion      String?
+  browser        String?
+  browserVersion String?
+  deviceType     String? // "desktop" | "mobile" | "tablet" | "other"
+
+  // Reported by the client
+  screenWidth    Int?
+  screenHeight   Int?
+  viewportWidth  Int?
+  viewportHeight Int?
+  timezone       String?
+  language       String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId, lastActiveAt])
+  @@index([startedAt])
 }
 
 model PasswordResetToken {

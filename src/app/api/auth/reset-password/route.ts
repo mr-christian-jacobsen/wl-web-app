@@ -29,7 +29,6 @@ export async function POST(req: Request) {
       where: { id: record.id },
       data: { usedAt: new Date() },
     }),
-    prisma.session.deleteMany({ where: { userId: record.userId } }),
   ]);
 
   return NextResponse.json({ ok: true });
