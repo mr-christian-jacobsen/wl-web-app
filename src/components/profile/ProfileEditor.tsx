@@ -180,8 +180,19 @@ function DetailsSection({
       setPending(false);
       return;
     }
-    onUpdated(patch);
-    setStatus({ kind: "ok", msg: "Profile updated" });
+    const body = (await res.json()) as {
+      user: { name: string; email: string };
+      pendingEmailChange: { newEmail: string; message: string } | null;
+    };
+    // Only the name was applied immediately; the email change waits for
+    // the user to click the confirmation link in the new inbox.
+    onUpdated({ name: body.user.name });
+    setStatus({
+      kind: "ok",
+      msg: body.pendingEmailChange
+        ? body.pendingEmailChange.message + " Your email stays as-is until you confirm."
+        : "Profile updated",
+    });
     setPending(false);
   }
 

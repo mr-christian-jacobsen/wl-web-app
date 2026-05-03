@@ -68,6 +68,39 @@ async function sendWithTemplateOrFallback(
 }
 
 const RESET_TTL_MINUTES = 30;
+const VERIFICATION_TTL_MINUTES = 60 * 24; // 24 hours
+const EMAIL_CHANGE_TTL_MINUTES = 60 * 24;
+
+export const VERIFY_EMAIL_TTL_MS = VERIFICATION_TTL_MINUTES * 60_000;
+export const EMAIL_CHANGE_TTL_MS = EMAIL_CHANGE_TTL_MINUTES * 60_000;
+
+export async function sendEmailVerificationEmail(
+  to: string,
+  verifyUrl: string,
+  opts: { name?: string } = {},
+) {
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  await sendWithTemplateOrFallback(
+    "email_verification",
+    to,
+    {
+      name: opts.name ?? "",
+      email: to,
+      verifyUrl,
+      appUrl,
+      ttlMinutes: VERIFICATION_TTL_MINUTES,
+    },
+    {
+      subject: "Confirm your email address",
+      text: `Welcome${opts.name ? `, ${opts.name}` : ""}!\n\nConfirm your email by visiting:\n${verifyUrl}\n\nThis link expires in 24 hours. If you did not create an account, ignore this email.`,
+      html: `
+      <p>Welcome${opts.name ? `, ${opts.name}` : ""}!</p>
+      <p>Confirm your email by clicking <a href="${verifyUrl}">${verifyUrl}</a>.</p>
+      <p>This link expires in 24 hours. If you did not create an account, ignore this email.</p>
+    `,
+    },
+  );
+}
 
 export async function sendPasswordResetEmail(
   to: string,
@@ -100,7 +133,7 @@ export async function sendPasswordResetEmail(
 export async function sendEmailChangeConfirmation(
   to: string,
   confirmUrl: string,
-  opts: { name?: string } = {},
+  opts: { name?: string; oldEmail: string },
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   await sendWithTemplateOrFallback(
@@ -108,14 +141,21 @@ export async function sendEmailChangeConfirmation(
     to,
     {
       name: opts.name ?? "",
-      email: to,
+      oldEmail: opts.oldEmail,
+      newEmail: to,
       confirmUrl,
       appUrl,
+      ttlMinutes: EMAIL_CHANGE_TTL_MINUTES,
     },
     {
       subject: "Confirm your new email address",
-      text: `Confirm your new email by visiting: ${confirmUrl}`,
-      html: `<p>Confirm your new email by clicking <a href="${confirmUrl}">${confirmUrl}</a>.</p>`,
+      text: `Hi${opts.name ? ` ${opts.name}` : ""},\n\nYou (or someone using your account) asked to change the email on file from ${opts.oldEmail} to this address.\n\nConfirm the change by visiting:\n${confirmUrl}\n\nThis link expires in 24 hours. If you didn't request this, ignore this email — your account stays on ${opts.oldEmail}.`,
+      html: `
+      <p>Hi${opts.name ? ` ${opts.name}` : ""},</p>
+      <p>You (or someone using your account) asked to change the email on file from <code>${opts.oldEmail}</code> to this address.</p>
+      <p>Confirm the change by clicking <a href="${confirmUrl}">${confirmUrl}</a>.</p>
+      <p>This link expires in 24 hours. If you didn't request this, ignore this email — your account stays on <code>${opts.oldEmail}</code>.</p>
+    `,
     },
   );
 }

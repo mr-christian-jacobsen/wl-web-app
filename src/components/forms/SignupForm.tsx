@@ -1,15 +1,14 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
 
 export function SignupForm() {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -27,17 +26,41 @@ export function SignupForm() {
       setPending(false);
       return;
     }
-    const signedIn = await signIn("credentials", {
-      redirect: false,
-      email: data.email,
-      password: data.password,
+    setSubmittedEmail(data.email!);
+    setPending(false);
+  }
+
+  async function onResend() {
+    if (!submittedEmail) return;
+    setResendState("sending");
+    await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: submittedEmail }),
     });
-    if (!signedIn || signedIn.error) {
-      router.push("/login");
-      return;
-    }
-    router.push("/profile");
-    router.refresh();
+    setResendState("sent");
+  }
+
+  if (submittedEmail) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+          Account created. We sent a confirmation link to <strong>{submittedEmail}</strong>.
+          Click the link to activate your account, then sign in.
+        </p>
+        <p className="text-xs text-slate-500">
+          Didn&apos;t receive it?{" "}
+          <button
+            type="button"
+            onClick={onResend}
+            disabled={resendState !== "idle"}
+            className="font-medium text-slate-700 underline disabled:opacity-60 dark:text-slate-300"
+          >
+            {resendState === "sent" ? "Sent again." : resendState === "sending" ? "Sending…" : "Resend"}
+          </button>
+        </p>
+      </div>
+    );
   }
 
   return (

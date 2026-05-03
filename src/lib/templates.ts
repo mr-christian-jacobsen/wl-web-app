@@ -17,6 +17,12 @@ export const KNOWN_TEMPLATES = [
     hasFallback: false,
   },
   {
+    key: "email_verification",
+    description: "Sent after sign-up to confirm the user's email address.",
+    variables: ["name", "email", "verifyUrl", "appUrl", "ttlMinutes"],
+    hasFallback: true,
+  },
+  {
     key: "password_reset",
     description: "Sent when a user requests a password reset.",
     variables: ["name", "email", "resetUrl", "appUrl", "ttlMinutes"],
@@ -25,8 +31,8 @@ export const KNOWN_TEMPLATES = [
   {
     key: "email_change_confirmation",
     description:
-      "Sent to confirm an email-address change. (Helper exists; not currently invoked from any flow.)",
-    variables: ["name", "email", "confirmUrl", "appUrl"],
+      "Sent to the new address when a logged-in user changes their email; confirming the link applies the change.",
+    variables: ["name", "oldEmail", "newEmail", "confirmUrl", "appUrl", "ttlMinutes"],
     hasFallback: true,
   },
 ] as const;

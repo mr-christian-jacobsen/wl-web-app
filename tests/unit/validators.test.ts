@@ -7,10 +7,12 @@ import {
   createEmailTemplateSchema,
   forgotPasswordSchema,
   loginSchema,
+  resendVerificationSchema,
   resetPasswordSchema,
   signupSchema,
   updateEmailTemplateSchema,
   updateProfileSchema,
+  verifyEmailSchema,
 } from "@/lib/validators";
 
 describe("validators", () => {
@@ -110,6 +112,16 @@ describe("validators", () => {
     expect(updateEmailTemplateSchema.safeParse({ subject: "new" }).success).toBe(true);
     expect(updateEmailTemplateSchema.safeParse({ bodyHtml: null }).success).toBe(true);
     expect(updateEmailTemplateSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("verify-email schema requires 32+ char token", () => {
+    expect(verifyEmailSchema.safeParse({ token: "x".repeat(32) }).success).toBe(true);
+    expect(verifyEmailSchema.safeParse({ token: "short" }).success).toBe(false);
+  });
+
+  it("resend-verification schema validates email", () => {
+    expect(resendVerificationSchema.safeParse({ email: "a@b.co" }).success).toBe(true);
+    expect(resendVerificationSchema.safeParse({ email: "x" }).success).toBe(false);
   });
 
   it("change-password rejects identical old/new", () => {

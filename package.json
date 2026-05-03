@@ -19,6 +19,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "promote-admin": "node scripts/promote-super-admin.mjs",
+    "backfill-verified": "node scripts/backfill-email-verified.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {
