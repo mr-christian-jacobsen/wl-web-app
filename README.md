@@ -17,7 +17,7 @@ Responsive Node.js + TypeScript web application with email/password authenticati
 - Prisma ORM (SQLite by default; PostgreSQL optional)
 - argon2id password hashing
 - Nodemailer for password-reset email (logs to console if SMTP isn't configured)
-- Local filesystem avatar storage (`/public/uploads`) — swappable adapter
+- Avatars stored as `BLOB` on the user row; cropped + JPEG-encoded client-side via `react-easy-crop` and served from `/api/avatar/[id]`
 - Vitest (unit) + Playwright (e2e)
 
 ## Quick start (zero config)

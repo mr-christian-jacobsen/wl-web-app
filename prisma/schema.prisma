@@ -12,7 +12,15 @@ model User {
   email           String    @unique
   name            String
   passwordHash    String
+  /// Public URL the UI renders for the avatar (e.g. /api/avatar/{id}?v={ms}).
+  /// Null when no avatar is set. Updated whenever `avatar` changes.
   avatarUrl       String?
+  /// Avatar bytes, stored directly in the row. Cropped + JPEG-encoded by the
+  /// client before upload, validated for MIME + magic + size on the server.
+  avatar          Bytes?
+  /// Mime type of the bytes in `avatar` — needed by the GET /api/avatar route
+  /// to set Content-Type.
+  avatarMime      String?
   isSuperAdmin    Boolean   @default(false)
   emailVerifiedAt DateTime?
   createdAt       DateTime  @default(now())

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { AvatarCropper } from "@/components/profile/AvatarCropper";
 
 type User = {
   id: string;
@@ -82,21 +83,31 @@ function AvatarSection({
   onUpdated,
 }: {
   user: User;
-  onUpdated: (url: string) => void;
+  onUpdated: (url: string | null) => void;
 }) {
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [pickedFile, setPickedFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setStatus({ kind: "idle" });
+    setPickedFile(file);
+    // Reset the input so picking the same file twice in a row still triggers
+    // the change event.
+    e.target.value = "";
+  }
+
+  async function onCropConfirm(blob: Blob) {
     setPending(true);
     setStatus({ kind: "idle" });
     const fd = new FormData();
-    fd.append("file", file);
+    fd.append("file", new File([blob], "avatar.jpg", { type: "image/jpeg" }));
     const res = await fetch("/api/profile/avatar", { method: "POST", body: fd });
+    setPickedFile(null);
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
       setStatus({ kind: "err", msg: body?.error ?? "Upload failed" });
@@ -107,6 +118,23 @@ function AvatarSection({
     setAvatarUrl(body.avatarUrl);
     onUpdated(body.avatarUrl);
     setStatus({ kind: "ok", msg: "Avatar updated" });
+    setPending(false);
+  }
+
+  async function onRemove() {
+    if (!confirm("Remove your avatar?")) return;
+    setPending(true);
+    setStatus({ kind: "idle" });
+    const res = await fetch("/api/profile/avatar", { method: "DELETE" });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      setStatus({ kind: "err", msg: body?.error ?? "Remove failed" });
+      setPending(false);
+      return;
+    }
+    setAvatarUrl(null);
+    onUpdated(null);
+    setStatus({ kind: "ok", msg: "Avatar removed" });
     setPending(false);
   }
 
@@ -123,12 +151,12 @@ function AvatarSection({
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
             ref={inputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            onChange={onChange}
+            onChange={onPick}
             className="hidden"
           />
           <button
@@ -139,9 +167,26 @@ function AvatarSection({
           >
             {pending ? "Uploading…" : "Upload new image"}
           </button>
+          {avatarUrl && (
+            <button
+              type="button"
+              onClick={onRemove}
+              disabled={pending}
+              className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+            >
+              Remove
+            </button>
+          )}
         </div>
       </div>
       <StatusLine status={status} />
+      {pickedFile && (
+        <AvatarCropper
+          file={pickedFile}
+          onCancel={() => setPickedFile(null)}
+          onConfirm={onCropConfirm}
+        />
+      )}
     </Section>
   );
 }

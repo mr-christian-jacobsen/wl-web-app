@@ -33,10 +33,6 @@ test-results
 !.vscode/extensions.json
 .idea
 
-# uploads (user-generated)
-public/uploads/*
-!public/uploads/.gitkeep
-
 # prisma
 prisma/dev.db
 prisma/dev.db-journal
