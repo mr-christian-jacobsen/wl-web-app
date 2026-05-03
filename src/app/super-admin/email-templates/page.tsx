@@ -15,8 +15,7 @@ export default async function SuperAdminEmailTemplatesPage() {
         <h2 className="text-base font-semibold">Templates the app uses</h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           These keys are referenced from code. Define a template with the matching key to
-          customise the email; otherwise, templates marked <em>fallback</em> use a built-in
-          default and the rest are skipped silently.
+          customise the email; otherwise, the built-in fallback is used so flows never break.
         </p>
         <ul className="mt-3 space-y-2 text-sm">
           {KNOWN_TEMPLATES.map((t) => {

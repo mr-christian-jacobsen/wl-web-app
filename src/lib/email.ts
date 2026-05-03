@@ -67,6 +67,39 @@ async function sendWithTemplateOrFallback(
   }
 }
 
+export async function sendUserInvitationEmail(
+  to: string,
+  opts: { name: string; password: string },
+) {
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const loginUrl = `${appUrl}/login`;
+  await sendWithTemplateOrFallback(
+    "user_invitation",
+    to,
+    {
+      name: opts.name,
+      email: to,
+      password: opts.password,
+      appUrl,
+      loginUrl,
+    },
+    {
+      subject: "Your wl-web-app account is ready",
+      text: `Hi ${opts.name},\n\nAn account has been created for you on wl-web-app.\n\nSign in at: ${loginUrl}\nEmail: ${to}\nTemporary password: ${opts.password}\n\nFor security, change your password after signing in.`,
+      html: `
+      <p>Hi ${opts.name},</p>
+      <p>An account has been created for you on wl-web-app.</p>
+      <p>Sign in at <a href="${loginUrl}">${loginUrl}</a></p>
+      <ul>
+        <li>Email: <code>${to}</code></li>
+        <li>Temporary password: <code>${opts.password}</code></li>
+      </ul>
+      <p>For security, change your password after signing in.</p>
+    `,
+    },
+  );
+}
+
 const RESET_TTL_MINUTES = 30;
 const VERIFICATION_TTL_MINUTES = 60 * 24; // 24 hours
 const EMAIL_CHANGE_TTL_MINUTES = 60 * 24;

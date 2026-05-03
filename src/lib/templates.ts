@@ -14,7 +14,7 @@ export const KNOWN_TEMPLATES = [
     key: "user_invitation",
     description: "Sent when a super admin creates a new user.",
     variables: ["name", "email", "password", "appUrl", "loginUrl"],
-    hasFallback: false,
+    hasFallback: true,
   },
   {
     key: "email_verification",

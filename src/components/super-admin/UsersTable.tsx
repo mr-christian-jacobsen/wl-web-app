@@ -217,12 +217,13 @@ function UserDialog({
         <h3 className="text-lg font-semibold">{isCreate ? "Create user" : "Edit user"}</h3>
         {isCreate && (
           <p className="text-xs text-slate-500">
-            On create, the <code className="font-mono">user_invitation</code> email template
-            (if defined) is sent to the new user with{" "}
+            On create, the <code className="font-mono">user_invitation</code> email is sent
+            to the new user. Customise it at <em>/super-admin/email-templates</em>; if no
+            template is defined, a built-in fallback is used. Variables:{" "}
             <code className="font-mono">{"{{name}}"}</code>,{" "}
             <code className="font-mono">{"{{email}}"}</code>,{" "}
-            <code className="font-mono">{"{{password}}"}</code>, and{" "}
-            <code className="font-mono">{"{{loginUrl}}"}</code> available as variables.
+            <code className="font-mono">{"{{password}}"}</code>,{" "}
+            <code className="font-mono">{"{{loginUrl}}"}</code>.
           </p>
         )}
         <Field label="Name" htmlFor="name">
