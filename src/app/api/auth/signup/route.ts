@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { VERIFY_EMAIL_TTL_MS, sendEmailVerificationEmail } from "@/lib/email";
 import { hashPassword } from "@/lib/password";
+import { generateToken } from "@/lib/tokens";
 import { signupSchema } from "@/lib/validators";
 
 export async function POST(req: Request) {
@@ -22,7 +24,28 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await hashPassword(password);
-  await prisma.user.create({ data: { email, name, passwordHash } });
+  const user = await prisma.user.create({
+    data: { email, name, passwordHash },
+    select: { id: true, email: true, name: true },
+  });
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  const { token, tokenHash } = generateToken();
+  await prisma.emailVerificationToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      purpose: "signup",
+      expiresAt: new Date(Date.now() + VERIFY_EMAIL_TTL_MS),
+    },
+  });
+
+  const base = process.env.APP_URL ?? "http://localhost:3000";
+  const verifyUrl = `${base}/verify-email/${token}`;
+  try {
+    await sendEmailVerificationEmail(user.email, verifyUrl, { name: user.name });
+  } catch (err) {
+    console.error("[signup] Failed to send verification email", err);
+  }
+
+  return NextResponse.json({ ok: true, requiresVerification: true }, { status: 201 });
 }

@@ -8,33 +8,84 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  avatarUrl    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  passwordHash    String
+  avatarUrl       String?
+  isSuperAdmin    Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  sessions    Session[]
-  resetTokens PasswordResetToken[]
+  resetTokens        PasswordResetToken[]
+  verificationTokens EmailVerificationToken[]
+  usageSessions      UsageSession[]
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+model UsageSession {
+  id           String    @id @default(cuid())
+  userId       String
+  startedAt    DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  endedAt      DateTime?
+
+  // Server-detected
+  userAgent String?
+  ipHash    String?
+
+  // Parsed from User-Agent
+  os             String?
+  osVersion      String?
+  browser        String?
+  browserVersion String?
+  deviceType     String? // "desktop" | "mobile" | "tablet" | "other"
+
+  // Reported by the client
+  screenWidth    Int?
+  screenHeight   Int?
+  viewportWidth  Int?
+  viewportHeight Int?
+  timezone       String?
+  language       String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId, lastActiveAt])
+  @@index([startedAt])
 }
 
 model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String
   tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  subject     String
+  bodyText    String
+  bodyHtml    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  purpose   String // "signup" | "change"
+  newEmail  String? // populated when purpose == "change"
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
