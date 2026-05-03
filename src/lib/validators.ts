@@ -113,3 +113,38 @@ export const updateEmailTemplateSchema = z
     message: "Provide at least one field to update",
   });
 export type UpdateEmailTemplateInput = z.infer<typeof updateEmailTemplateSchema>;
+
+const optionalTrimmed = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null));
+
+export const updateSmtpSettingsSchema = z.object({
+  host: optionalTrimmed(255),
+  port: z
+    .union([z.number().int().min(1).max(65_535), z.literal("")])
+    .optional()
+    .transform((v) => (typeof v === "number" ? v : null)),
+  user: optionalTrimmed(255),
+  /**
+   * Empty string means "leave the existing password untouched"; null means
+   * "clear it"; any non-empty string overwrites. The form sends "" when the
+   * password input is left blank.
+   */
+  pass: z
+    .string()
+    .max(255)
+    .optional()
+    .transform((v): string | null | undefined => {
+      if (v === undefined || v === "") return undefined;
+      return v;
+    }),
+  from: optionalTrimmed(255),
+});
+export type UpdateSmtpSettingsInput = z.infer<typeof updateSmtpSettingsSchema>;
+
+export const testEmailSchema = z.object({ to: emailSchema });
+export type TestEmailInput = z.infer<typeof testEmailSchema>;
