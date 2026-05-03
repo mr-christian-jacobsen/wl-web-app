@@ -1,6 +1,7 @@
 import NextAuth, { type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
+import { authConfig } from "@/auth.config";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { loginSchema } from "@/lib/validators";
@@ -17,10 +18,7 @@ declare module "next-auth" {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-  },
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -48,27 +46,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user, trigger, session }) {
-      if (user) {
-        token.uid = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
-      }
-      if (trigger === "update" && session) {
-        if (typeof session.name === "string") token.name = session.name;
-        if (typeof session.email === "string") token.email = session.email;
-        if (session.avatarUrl !== undefined) token.avatarUrl = session.avatarUrl;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      session.user.id = token.uid as string;
-      session.user.email = (token.email as string) ?? session.user.email;
-      session.user.name = (token.name as string) ?? session.user.name;
-      session.user.avatarUrl = (token.avatarUrl as string | null) ?? null;
-      return session;
-    },
-  },
 });

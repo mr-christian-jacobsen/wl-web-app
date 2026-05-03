@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { AuthCard } from "@/components/AuthCard";
 import { LoginForm } from "@/components/forms/LoginForm";
@@ -20,7 +21,9 @@ export default function LoginPage() {
           </div>
         }
       >
-        <LoginForm />
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </AuthCard>
     </section>
   );

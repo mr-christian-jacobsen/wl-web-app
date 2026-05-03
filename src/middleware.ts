@@ -1,6 +1,9 @@
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/lib/auth";
+import { authConfig } from "@/auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 const PROTECTED = ["/profile"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password", "/reset-password"];
