@@ -40,3 +40,6 @@ public/uploads/*
 # prisma
 prisma/dev.db
 prisma/dev.db-journal
+
+# typescript build cache
+*.tsbuildinfo
