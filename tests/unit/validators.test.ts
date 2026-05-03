@@ -4,10 +4,12 @@ import {
   adminCreateUserSchema,
   adminUpdateUserSchema,
   changePasswordSchema,
+  createEmailTemplateSchema,
   forgotPasswordSchema,
   loginSchema,
   resetPasswordSchema,
   signupSchema,
+  updateEmailTemplateSchema,
   updateProfileSchema,
 } from "@/lib/validators";
 
@@ -74,6 +76,40 @@ describe("validators", () => {
     expect(
       adminUpdateUserSchema.safeParse({ email: "not-email", isSuperAdmin: true }).success,
     ).toBe(false);
+  });
+
+  it("create-email-template enforces snake_case key + required fields", () => {
+    const ok = createEmailTemplateSchema.safeParse({
+      key: "user_invitation",
+      name: "User invitation",
+      subject: "Welcome {{name}}",
+      bodyText: "Hi {{name}}",
+    });
+    expect(ok.success).toBe(true);
+
+    expect(
+      createEmailTemplateSchema.safeParse({
+        key: "Bad-Key",
+        name: "x",
+        subject: "y",
+        bodyText: "z",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createEmailTemplateSchema.safeParse({
+        key: "user_invitation",
+        name: "x",
+        subject: "y",
+        bodyText: "",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("update-email-template requires at least one field", () => {
+    expect(updateEmailTemplateSchema.safeParse({ subject: "new" }).success).toBe(true);
+    expect(updateEmailTemplateSchema.safeParse({ bodyHtml: null }).success).toBe(true);
+    expect(updateEmailTemplateSchema.safeParse({}).success).toBe(false);
   });
 
   it("change-password rejects identical old/new", () => {

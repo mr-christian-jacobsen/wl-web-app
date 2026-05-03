@@ -3,16 +3,18 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 
 export default async function SuperAdminLanding() {
-  const [totalUsers, superAdmins] = await Promise.all([
+  const [totalUsers, superAdmins, templates] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { isSuperAdmin: true } }),
+    prisma.emailTemplate.count(),
   ]);
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Total users" value={totalUsers} />
         <Stat label="Super admins" value={superAdmins} />
+        <Stat label="Email templates" value={templates} />
       </div>
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h2 className="text-lg font-semibold">Quick links</h2>
@@ -23,6 +25,14 @@ export default async function SuperAdminLanding() {
               className="font-medium text-slate-900 underline dark:text-slate-100"
             >
               Manage users →
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/super-admin/email-templates"
+              className="font-medium text-slate-900 underline dark:text-slate-100"
+            >
+              Manage email templates →
             </Link>
           </li>
         </ul>

@@ -44,3 +44,15 @@ model PasswordResetToken {
 
   @@index([userId])
 }
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  subject     String
+  bodyText    String
+  bodyHtml    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

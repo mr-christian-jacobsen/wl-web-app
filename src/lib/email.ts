@@ -1,5 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
+import { renderTemplateByKey, type TemplateVars } from "@/lib/templates";
+
 const FROM = process.env.SMTP_FROM ?? "no-reply@wl-web-app.local";
 const HOST = process.env.SMTP_HOST;
 
@@ -15,7 +17,14 @@ if (HOST) {
   });
 }
 
-async function send(opts: { to: string; subject: string; text: string; html: string }) {
+async function send(opts: { to: string; subject: string; text: string; html?: string | null }) {
+  const message = {
+    from: FROM,
+    to: opts.to,
+    subject: opts.subject,
+    text: opts.text,
+    ...(opts.html ? { html: opts.html } : {}),
+  };
   if (!transporter) {
     console.log(
       `[email:console] SMTP not configured. Would send to=${opts.to} subject="${opts.subject}"\n${opts.text}`,
@@ -23,11 +32,24 @@ async function send(opts: { to: string; subject: string; text: string; html: str
     return;
   }
   try {
-    await transporter.sendMail({ from: FROM, ...opts });
+    await transporter.sendMail(message);
   } catch (err) {
     console.error(`[email] SMTP send failed; logging instead:`, err);
     console.log(`[email:fallback] to=${opts.to} subject="${opts.subject}"\n${opts.text}`);
   }
+}
+
+export class TemplateNotFoundError extends Error {
+  constructor(key: string) {
+    super(`Email template not found: ${key}`);
+    this.name = "TemplateNotFoundError";
+  }
+}
+
+export async function sendTemplatedEmail(key: string, to: string, vars: TemplateVars) {
+  const rendered = await renderTemplateByKey(key, vars);
+  if (!rendered) throw new TemplateNotFoundError(key);
+  await send({ to, subject: rendered.subject, text: rendered.text, html: rendered.html });
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
