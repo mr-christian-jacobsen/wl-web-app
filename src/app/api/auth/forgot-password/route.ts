@@ -24,7 +24,10 @@ export async function POST(req: Request) {
     const base = process.env.APP_URL ?? "http://localhost:3000";
     const resetUrl = `${base}/reset-password/${token}`;
     try {
-      await sendPasswordResetEmail(user.email, resetUrl, { name: user.name });
+      await sendPasswordResetEmail(user.email, resetUrl, {
+        name: user.name,
+        userId: user.id,
+      });
     } catch (err) {
       console.error("Failed to send reset email", err);
     }

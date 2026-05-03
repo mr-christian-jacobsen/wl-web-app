@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
+import { prisma } from "@/lib/db";
 import { escapeHtml, renderTemplateByKey, type TemplateVars } from "@/lib/templates";
 
 const FROM = process.env.SMTP_FROM ?? "no-reply@wl-web-app.local";
@@ -17,25 +18,82 @@ if (HOST) {
   });
 }
 
-async function send(opts: { to: string; subject: string; text: string; html?: string | null }) {
-  const message = {
-    from: FROM,
-    to: opts.to,
-    subject: opts.subject,
-    text: opts.text,
-    ...(opts.html ? { html: opts.html } : {}),
-  };
+export type EmailType =
+  | "user_invitation"
+  | "email_verification"
+  | "password_reset"
+  | "email_change_confirmation";
+
+type SendInput = {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string | null;
+  /** What kind of email this is (used for the audit log + filtering). */
+  type: EmailType;
+  /** Set when an admin-defined template was used; null when the hardcoded fallback rendered. */
+  templateKey: EmailType | null;
+  /** Recipient's User row, if known. Kept on the audit row even after the user is deleted. */
+  userId?: string | null;
+};
+
+/**
+ * Send an email and audit-log every attempt. Inserts a `pending` row first so
+ * a process crash mid-send still leaves a record; updates the row to `sent` /
+ * `failed` / `skipped` once the SMTP call resolves.
+ */
+async function send(opts: SendInput) {
+  const log = await prisma.email
+    .create({
+      data: {
+        to: opts.to,
+        type: opts.type,
+        templateKey: opts.templateKey,
+        subject: opts.subject,
+        bodyText: opts.text,
+        bodyHtml: opts.html ?? null,
+        status: "pending",
+        userId: opts.userId ?? null,
+      },
+      select: { id: true },
+    })
+    .catch((err) => {
+      console.error("[email] Failed to create audit row", err);
+      return null;
+    });
+
+  let status: "sent" | "failed" | "skipped";
+  let errorMessage: string | null = null;
+
   if (!transporter) {
+    status = "skipped";
     console.log(
       `[email:console] SMTP not configured. Would send to=${opts.to} subject="${opts.subject}"\n${opts.text}`,
     );
-    return;
+  } else {
+    try {
+      await transporter.sendMail({
+        from: FROM,
+        to: opts.to,
+        subject: opts.subject,
+        text: opts.text,
+        ...(opts.html ? { html: opts.html } : {}),
+      });
+      status = "sent";
+    } catch (err) {
+      status = "failed";
+      errorMessage = err instanceof Error ? err.message : String(err);
+      console.error(`[email] SMTP send failed; logging instead:`, err);
+      console.log(`[email:fallback] to=${opts.to} subject="${opts.subject}"\n${opts.text}`);
+    }
   }
-  try {
-    await transporter.sendMail(message);
-  } catch (err) {
-    console.error(`[email] SMTP send failed; logging instead:`, err);
-    console.log(`[email:fallback] to=${opts.to} subject="${opts.subject}"\n${opts.text}`);
+
+  if (log) {
+    await prisma.email
+      .update({ where: { id: log.id }, data: { status, error: errorMessage } })
+      .catch((err) => {
+        console.error("[email] Failed to update audit row", err);
+      });
   }
 }
 
@@ -46,30 +104,50 @@ class TemplateNotFoundError extends Error {
   }
 }
 
-async function sendTemplatedEmail(key: string, to: string, vars: TemplateVars) {
-  const rendered = await renderTemplateByKey(key, vars);
-  if (!rendered) throw new TemplateNotFoundError(key);
-  await send({ to, subject: rendered.subject, text: rendered.text, html: rendered.html });
+async function sendTemplatedEmail(
+  type: EmailType,
+  to: string,
+  vars: TemplateVars,
+  ctx: { userId?: string | null },
+) {
+  const rendered = await renderTemplateByKey(type, vars);
+  if (!rendered) throw new TemplateNotFoundError(type);
+  await send({
+    to,
+    subject: rendered.subject,
+    text: rendered.text,
+    html: rendered.html,
+    type,
+    templateKey: type,
+    userId: ctx.userId,
+  });
 }
 
 /** Render via the named template; if it doesn't exist, send the fallback. */
 async function sendWithTemplateOrFallback(
-  key: string,
+  type: EmailType,
   to: string,
   vars: TemplateVars,
   fallback: { subject: string; text: string; html?: string },
+  ctx: { userId?: string | null },
 ) {
   try {
-    await sendTemplatedEmail(key, to, vars);
+    await sendTemplatedEmail(type, to, vars, ctx);
   } catch (err) {
     if (!(err instanceof TemplateNotFoundError)) throw err;
-    await send({ to, ...fallback });
+    await send({
+      to,
+      ...fallback,
+      type,
+      templateKey: null,
+      userId: ctx.userId,
+    });
   }
 }
 
 export async function sendUserInvitationEmail(
   to: string,
-  opts: { name: string; password: string },
+  opts: { name: string; password: string; userId?: string | null },
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   const loginUrl = `${appUrl}/login`;
@@ -97,6 +175,7 @@ export async function sendUserInvitationEmail(
       <p>For security, change your password after signing in.</p>
     `,
     },
+    { userId: opts.userId },
   );
 }
 
@@ -110,7 +189,7 @@ export const EMAIL_CHANGE_TTL_MS = EMAIL_CHANGE_TTL_MINUTES * 60_000;
 export async function sendEmailVerificationEmail(
   to: string,
   verifyUrl: string,
-  opts: { name?: string } = {},
+  opts: { name?: string; userId?: string | null } = {},
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   await sendWithTemplateOrFallback(
@@ -132,13 +211,14 @@ export async function sendEmailVerificationEmail(
       <p>This link expires in 24 hours. If you did not create an account, ignore this email.</p>
     `,
     },
+    { userId: opts.userId },
   );
 }
 
 export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string,
-  opts: { name?: string } = {},
+  opts: { name?: string; userId?: string | null } = {},
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   await sendWithTemplateOrFallback(
@@ -160,13 +240,14 @@ export async function sendPasswordResetEmail(
       <p>This link expires in ${RESET_TTL_MINUTES} minutes. If you did not request this, ignore this email.</p>
     `,
     },
+    { userId: opts.userId },
   );
 }
 
 export async function sendEmailChangeConfirmation(
   to: string,
   confirmUrl: string,
-  opts: { name?: string; oldEmail: string },
+  opts: { name?: string; oldEmail: string; userId?: string | null },
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   await sendWithTemplateOrFallback(
@@ -190,5 +271,6 @@ export async function sendEmailChangeConfirmation(
       <p>This link expires in 24 hours. If you didn't request this, ignore this email — your account stays on <code>${escapeHtml(opts.oldEmail)}</code>.</p>
     `,
     },
+    { userId: opts.userId },
   );
 }

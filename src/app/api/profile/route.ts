@@ -80,6 +80,7 @@ export async function PATCH(req: Request) {
       await sendEmailChangeConfirmation(newEmail, confirmUrl, {
         name: updatedName ?? me.name,
         oldEmail: me.email,
+        userId: me.id,
       });
     } catch (err) {
       console.error("[profile] Failed to send email-change confirmation", err);
