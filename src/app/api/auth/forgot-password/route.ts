@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
-import { generateResetToken } from "@/lib/tokens";
+import { generateToken } from "@/lib/tokens";
 import { forgotPasswordSchema } from "@/lib/validators";
 
 const TOKEN_TTL_MINUTES = 30;
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (user) {
-    const { token, tokenHash } = generateResetToken();
+    const { token, tokenHash } = generateToken();
     const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES * 60_000);
     await prisma.passwordResetToken.create({
       data: { userId: user.id, tokenHash, expiresAt },

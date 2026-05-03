@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { hashResetToken } from "@/lib/tokens";
+import { hashToken } from "@/lib/tokens";
 import { verifyEmailSchema } from "@/lib/validators";
 
 export async function POST(req: Request) {
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid token" }, { status: 400 });
   }
 
-  const tokenHash = hashResetToken(parsed.data.token);
+  const tokenHash = hashToken(parsed.data.token);
   const record = await prisma.emailVerificationToken.findUnique({ where: { tokenHash } });
   if (!record || record.usedAt || record.expiresAt < new Date()) {
     return NextResponse.json(

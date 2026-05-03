@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { EMAIL_CHANGE_TTL_MS, sendEmailChangeConfirmation } from "@/lib/email";
-import { generateResetToken } from "@/lib/tokens";
+import { generateToken } from "@/lib/tokens";
 import { updateProfileSchema } from "@/lib/validators";
 
 export async function PATCH(req: Request) {
@@ -56,7 +56,7 @@ export async function PATCH(req: Request) {
       where: { userId: me.id, purpose: "change", usedAt: null },
     });
 
-    const { token, tokenHash } = generateResetToken();
+    const { token, tokenHash } = generateToken();
     try {
       await prisma.emailVerificationToken.create({
         data: {

@@ -36,7 +36,6 @@ export const KNOWN_TEMPLATES = [
     hasFallback: true,
   },
 ] as const;
-export type KnownTemplate = (typeof KNOWN_TEMPLATES)[number];
 
 export function renderTemplate(input: string, vars: TemplateVars): string {
   return input.replace(PLACEHOLDER, (match, name: string) => {
@@ -45,7 +44,7 @@ export function renderTemplate(input: string, vars: TemplateVars): string {
   });
 }
 
-export type RenderedTemplate = {
+type RenderedTemplate = {
   subject: string;
   text: string;
   html: string | null;

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { VERIFY_EMAIL_TTL_MS, sendEmailVerificationEmail } from "@/lib/email";
 import { hashPassword } from "@/lib/password";
-import { generateResetToken } from "@/lib/tokens";
+import { generateToken } from "@/lib/tokens";
 import { signupSchema } from "@/lib/validators";
 
 export async function POST(req: Request) {
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     select: { id: true, email: true, name: true },
   });
 
-  const { token, tokenHash } = generateResetToken();
+  const { token, tokenHash } = generateToken();
   await prisma.emailVerificationToken.create({
     data: {
       userId: user.id,

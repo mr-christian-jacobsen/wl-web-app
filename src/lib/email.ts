@@ -39,14 +39,14 @@ async function send(opts: { to: string; subject: string; text: string; html?: st
   }
 }
 
-export class TemplateNotFoundError extends Error {
+class TemplateNotFoundError extends Error {
   constructor(key: string) {
     super(`Email template not found: ${key}`);
     this.name = "TemplateNotFoundError";
   }
 }
 
-export async function sendTemplatedEmail(key: string, to: string, vars: TemplateVars) {
+async function sendTemplatedEmail(key: string, to: string, vars: TemplateVars) {
   const rendered = await renderTemplateByKey(key, vars);
   if (!rendered) throw new TemplateNotFoundError(key);
   await send({ to, subject: rendered.subject, text: rendered.text, html: rendered.html });

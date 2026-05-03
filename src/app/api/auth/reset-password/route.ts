@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
-import { hashResetToken } from "@/lib/tokens";
+import { hashToken } from "@/lib/tokens";
 import { resetPasswordSchema } from "@/lib/validators";
 
 export async function POST(req: Request) {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const tokenHash = hashResetToken(parsed.data.token);
+  const tokenHash = hashToken(parsed.data.token);
   const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
   if (!record || record.usedAt || record.expiresAt < new Date()) {
     return NextResponse.json({ error: "Reset link is invalid or expired" }, { status: 400 });

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { VERIFY_EMAIL_TTL_MS, sendEmailVerificationEmail } from "@/lib/email";
-import { generateResetToken } from "@/lib/tokens";
+import { generateToken } from "@/lib/tokens";
 import { resendVerificationSchema } from "@/lib/validators";
 
 export async function POST(req: Request) {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (user && !user.emailVerifiedAt) {
-    const { token, tokenHash } = generateResetToken();
+    const { token, tokenHash } = generateToken();
     await prisma.emailVerificationToken.create({
       data: {
         userId: user.id,
