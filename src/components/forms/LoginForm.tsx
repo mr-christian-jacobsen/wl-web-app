@@ -8,6 +8,17 @@ import { Field, buttonClass, inputClass } from "@/components/AuthCard";
 
 type ResendState = "idle" | "sending" | "sent";
 
+/**
+ * Reject anything that isn't a same-origin path. `//` would resolve to
+ * another origin; absolute URLs (`http://...`) must also be refused so a
+ * crafted `/login?from=https://attacker` link can't redirect a successful
+ * login off-site.
+ */
+function safeRedirect(target: string | null | undefined): string {
+  if (!target || !target.startsWith("/") || target.startsWith("//")) return "/profile";
+  return target;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -33,7 +44,7 @@ export function LoginForm() {
       setPending(false);
       return;
     }
-    router.push(params.get("from") ?? "/profile");
+    router.push(safeRedirect(params.get("from")));
     router.refresh();
   }
 

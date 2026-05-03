@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { renderTemplate } from "@/lib/templates";
+import { escapeHtml, renderTemplate } from "@/lib/templates";
 
 describe("renderTemplate", () => {
   it("substitutes named variables", () => {
@@ -31,5 +31,23 @@ describe("renderTemplate", () => {
 
   it("coerces numbers to strings", () => {
     expect(renderTemplate("count={{n}}", { n: 42 })).toBe("count=42");
+  });
+
+  it("escapes substituted values when an escaper is provided", () => {
+    expect(
+      renderTemplate("Hi {{name}}", { name: '<img src=x onerror="boom">' }, escapeHtml),
+    ).toBe("Hi &lt;img src=x onerror=&quot;boom&quot;&gt;");
+  });
+});
+
+describe("escapeHtml", () => {
+  it("escapes the five common HTML metacharacters", () => {
+    expect(escapeHtml(`<a href="x" data-x='y'>&</a>`)).toBe(
+      "&lt;a href=&quot;x&quot; data-x=&#39;y&#39;&gt;&amp;&lt;/a&gt;",
+    );
+  });
+
+  it("leaves safe text alone", () => {
+    expect(escapeHtml("Hello, world.")).toBe("Hello, world.");
   });
 });

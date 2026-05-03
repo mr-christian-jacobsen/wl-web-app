@@ -2,6 +2,19 @@ import { prisma } from "@/lib/db";
 
 const PLACEHOLDER = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
 
+const HTML_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+/** Escape a value for safe inclusion inside HTML body text or attributes. */
+export function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]!);
+}
+
 export type TemplateVars = Record<string, string | number | null | undefined>;
 
 /**
@@ -37,10 +50,16 @@ export const KNOWN_TEMPLATES = [
   },
 ] as const;
 
-export function renderTemplate(input: string, vars: TemplateVars): string {
+export function renderTemplate(
+  input: string,
+  vars: TemplateVars,
+  escape?: (s: string) => string,
+): string {
   return input.replace(PLACEHOLDER, (match, name: string) => {
     const v = vars[name];
-    return v === undefined || v === null ? match : String(v);
+    if (v === undefined || v === null) return match;
+    const s = String(v);
+    return escape ? escape(s) : s;
   });
 }
 
@@ -59,6 +78,9 @@ export async function renderTemplateByKey(
   return {
     subject: renderTemplate(tpl.subject, vars),
     text: renderTemplate(tpl.bodyText, vars),
-    html: tpl.bodyHtml ? renderTemplate(tpl.bodyHtml, vars) : null,
+    // Vars in HTML bodies must be HTML-escaped so that user input (e.g. a
+    // user's name containing < or > or quotes) can never inject markup into
+    // the email. Admin-authored template HTML structure stays unescaped.
+    html: tpl.bodyHtml ? renderTemplate(tpl.bodyHtml, vars, escapeHtml) : null,
   };
 }

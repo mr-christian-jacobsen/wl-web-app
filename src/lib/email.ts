@@ -1,6 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
-import { renderTemplateByKey, type TemplateVars } from "@/lib/templates";
+import { escapeHtml, renderTemplateByKey, type TemplateVars } from "@/lib/templates";
 
 const FROM = process.env.SMTP_FROM ?? "no-reply@wl-web-app.local";
 const HOST = process.env.SMTP_HOST;
@@ -87,12 +87,12 @@ export async function sendUserInvitationEmail(
       subject: "Your wl-web-app account is ready",
       text: `Hi ${opts.name},\n\nAn account has been created for you on wl-web-app.\n\nSign in at: ${loginUrl}\nEmail: ${to}\nTemporary password: ${opts.password}\n\nFor security, change your password after signing in.`,
       html: `
-      <p>Hi ${opts.name},</p>
+      <p>Hi ${escapeHtml(opts.name)},</p>
       <p>An account has been created for you on wl-web-app.</p>
       <p>Sign in at <a href="${loginUrl}">${loginUrl}</a></p>
       <ul>
-        <li>Email: <code>${to}</code></li>
-        <li>Temporary password: <code>${opts.password}</code></li>
+        <li>Email: <code>${escapeHtml(to)}</code></li>
+        <li>Temporary password: <code>${escapeHtml(opts.password)}</code></li>
       </ul>
       <p>For security, change your password after signing in.</p>
     `,
@@ -127,7 +127,7 @@ export async function sendEmailVerificationEmail(
       subject: "Confirm your email address",
       text: `Welcome${opts.name ? `, ${opts.name}` : ""}!\n\nConfirm your email by visiting:\n${verifyUrl}\n\nThis link expires in 24 hours. If you did not create an account, ignore this email.`,
       html: `
-      <p>Welcome${opts.name ? `, ${opts.name}` : ""}!</p>
+      <p>Welcome${opts.name ? `, ${escapeHtml(opts.name)}` : ""}!</p>
       <p>Confirm your email by clicking <a href="${verifyUrl}">${verifyUrl}</a>.</p>
       <p>This link expires in 24 hours. If you did not create an account, ignore this email.</p>
     `,
@@ -184,10 +184,10 @@ export async function sendEmailChangeConfirmation(
       subject: "Confirm your new email address",
       text: `Hi${opts.name ? ` ${opts.name}` : ""},\n\nYou (or someone using your account) asked to change the email on file from ${opts.oldEmail} to this address.\n\nConfirm the change by visiting:\n${confirmUrl}\n\nThis link expires in 24 hours. If you didn't request this, ignore this email — your account stays on ${opts.oldEmail}.`,
       html: `
-      <p>Hi${opts.name ? ` ${opts.name}` : ""},</p>
-      <p>You (or someone using your account) asked to change the email on file from <code>${opts.oldEmail}</code> to this address.</p>
+      <p>Hi${opts.name ? ` ${escapeHtml(opts.name)}` : ""},</p>
+      <p>You (or someone using your account) asked to change the email on file from <code>${escapeHtml(opts.oldEmail)}</code> to this address.</p>
       <p>Confirm the change by clicking <a href="${confirmUrl}">${confirmUrl}</a>.</p>
-      <p>This link expires in 24 hours. If you didn't request this, ignore this email — your account stays on <code>${opts.oldEmail}</code>.</p>
+      <p>This link expires in 24 hours. If you didn't request this, ignore this email — your account stays on <code>${escapeHtml(opts.oldEmail)}</code>.</p>
     `,
     },
   );
