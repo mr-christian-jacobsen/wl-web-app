@@ -52,24 +52,70 @@ export async function sendTemplatedEmail(key: string, to: string, vars: Template
   await send({ to, subject: rendered.subject, text: rendered.text, html: rendered.html });
 }
 
-export async function sendPasswordResetEmail(to: string, resetUrl: string) {
-  await send({
-    to,
-    subject: "Reset your password",
-    text: `Reset your password by visiting: ${resetUrl}\n\nThis link expires in 30 minutes. If you did not request this, ignore this email.`,
-    html: `
-      <p>Reset your password by clicking the link below:</p>
-      <p><a href="${resetUrl}">${resetUrl}</a></p>
-      <p>This link expires in 30 minutes. If you did not request this, ignore this email.</p>
-    `,
-  });
+/** Render via the named template; if it doesn't exist, send the fallback. */
+async function sendWithTemplateOrFallback(
+  key: string,
+  to: string,
+  vars: TemplateVars,
+  fallback: { subject: string; text: string; html?: string },
+) {
+  try {
+    await sendTemplatedEmail(key, to, vars);
+  } catch (err) {
+    if (!(err instanceof TemplateNotFoundError)) throw err;
+    await send({ to, ...fallback });
+  }
 }
 
-export async function sendEmailChangeConfirmation(to: string, confirmUrl: string) {
-  await send({
+const RESET_TTL_MINUTES = 30;
+
+export async function sendPasswordResetEmail(
+  to: string,
+  resetUrl: string,
+  opts: { name?: string } = {},
+) {
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  await sendWithTemplateOrFallback(
+    "password_reset",
     to,
-    subject: "Confirm your new email address",
-    text: `Confirm your new email by visiting: ${confirmUrl}`,
-    html: `<p>Confirm your new email by clicking <a href="${confirmUrl}">${confirmUrl}</a>.</p>`,
-  });
+    {
+      name: opts.name ?? "",
+      email: to,
+      resetUrl,
+      appUrl,
+      ttlMinutes: RESET_TTL_MINUTES,
+    },
+    {
+      subject: "Reset your password",
+      text: `Reset your password by visiting: ${resetUrl}\n\nThis link expires in ${RESET_TTL_MINUTES} minutes. If you did not request this, ignore this email.`,
+      html: `
+      <p>Reset your password by clicking the link below:</p>
+      <p><a href="${resetUrl}">${resetUrl}</a></p>
+      <p>This link expires in ${RESET_TTL_MINUTES} minutes. If you did not request this, ignore this email.</p>
+    `,
+    },
+  );
+}
+
+export async function sendEmailChangeConfirmation(
+  to: string,
+  confirmUrl: string,
+  opts: { name?: string } = {},
+) {
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  await sendWithTemplateOrFallback(
+    "email_change_confirmation",
+    to,
+    {
+      name: opts.name ?? "",
+      email: to,
+      confirmUrl,
+      appUrl,
+    },
+    {
+      subject: "Confirm your new email address",
+      text: `Confirm your new email by visiting: ${confirmUrl}`,
+      html: `<p>Confirm your new email by clicking <a href="${confirmUrl}">${confirmUrl}</a>.</p>`,
+    },
+  );
 }

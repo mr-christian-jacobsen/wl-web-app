@@ -4,6 +4,34 @@ const PLACEHOLDER = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
 
 export type TemplateVars = Record<string, string | number | null | undefined>;
 
+/**
+ * Registry of template keys the codebase actively renders. Listed in the
+ * /super-admin/email-templates UI so admins know what they can override.
+ * Falling back to a hard-coded version is the responsibility of each caller.
+ */
+export const KNOWN_TEMPLATES = [
+  {
+    key: "user_invitation",
+    description: "Sent when a super admin creates a new user.",
+    variables: ["name", "email", "password", "appUrl", "loginUrl"],
+    hasFallback: false,
+  },
+  {
+    key: "password_reset",
+    description: "Sent when a user requests a password reset.",
+    variables: ["name", "email", "resetUrl", "appUrl", "ttlMinutes"],
+    hasFallback: true,
+  },
+  {
+    key: "email_change_confirmation",
+    description:
+      "Sent to confirm an email-address change. (Helper exists; not currently invoked from any flow.)",
+    variables: ["name", "email", "confirmUrl", "appUrl"],
+    hasFallback: true,
+  },
+] as const;
+export type KnownTemplate = (typeof KNOWN_TEMPLATES)[number];
+
 export function renderTemplate(input: string, vars: TemplateVars): string {
   return input.replace(PLACEHOLDER, (match, name: string) => {
     const v = vars[name];
