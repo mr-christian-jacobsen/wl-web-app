@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, "claude/**"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: wl
+          POSTGRES_PASSWORD: wl
+          POSTGRES_DB: wl
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wl"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://wl:wl@localhost:5432/wl?schema=public
+      AUTH_SECRET: test-secret-not-used-in-prod
+      AUTH_URL: http://localhost:3000
+      AUTH_TRUST_HOST: "true"
+      APP_URL: http://localhost:3000
+      SMTP_HOST: localhost
+      SMTP_PORT: "1025"
+      SMTP_FROM: no-reply@wl-web-app.local
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
