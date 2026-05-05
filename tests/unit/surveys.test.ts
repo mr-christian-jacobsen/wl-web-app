@@ -8,6 +8,7 @@ import {
   parseOptions,
   stepTypeRequiresOptions,
 } from "@/lib/step-types";
+import { generateSurveySlug, isValidSurveySlug } from "@/lib/survey-slug";
 import {
   createStepSchema,
   createSurveySchema,
@@ -103,6 +104,36 @@ describe("survey + step validators", () => {
   it("setPublishedSchema accepts only booleans", () => {
     expect(setPublishedSchema.safeParse({ published: true }).success).toBe(true);
     expect(setPublishedSchema.safeParse({ published: "yes" }).success).toBe(false);
+  });
+});
+
+describe("survey slug", () => {
+  it("generates a 6-char [a-zA-Z] string", () => {
+    for (let i = 0; i < 50; i++) {
+      const slug = generateSurveySlug();
+      expect(slug).toHaveLength(6);
+      expect(isValidSurveySlug(slug)).toBe(true);
+    }
+  });
+
+  it("rejects malformed slugs", () => {
+    expect(isValidSurveySlug("abc123")).toBe(false); // contains digits
+    expect(isValidSurveySlug("abcde")).toBe(false); // too short
+    expect(isValidSurveySlug("abcdefg")).toBe(false); // too long
+    expect(isValidSurveySlug("ab cde")).toBe(false); // whitespace
+    expect(isValidSurveySlug("ab-cde")).toBe(false); // punctuation
+  });
+
+  it("uses both upper- and lower-case letters across many samples", () => {
+    let sawUpper = false;
+    let sawLower = false;
+    for (let i = 0; i < 200 && !(sawUpper && sawLower); i++) {
+      const slug = generateSurveySlug();
+      if (/[A-Z]/.test(slug)) sawUpper = true;
+      if (/[a-z]/.test(slug)) sawLower = true;
+    }
+    expect(sawUpper).toBe(true);
+    expect(sawLower).toBe(true);
   });
 });
 

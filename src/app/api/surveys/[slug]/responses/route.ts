@@ -2,21 +2,28 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { parseOptions, stepTypeRequiresOptions } from "@/lib/step-types";
+import { isValidSurveySlug } from "@/lib/survey-slug";
 import { hashIp, ipFromHeaders } from "@/lib/usage";
 import { submitResponseSchema } from "@/lib/validators";
 
 /**
- * Public submission endpoint — no auth. Only accepts answers for
- * published surveys. The submitted IP is stored as a truncated SHA-256
- * hash (see `hashIp`) so admins can spot abuse without keeping the raw
- * address. We do not currently rate-limit per-IP at this layer; do that
- * at the proxy or add a short-window check here if abuse appears.
+ * Public submission endpoint — no auth. Looks the survey up by its
+ * 6-char `publicSlug` (not its cuid id) so survey URLs can't be used
+ * to enumerate IDs. Only accepts answers for published surveys. The
+ * submitted IP is stored as a truncated SHA-256 hash (see `hashIp`)
+ * so admins can spot abuse without keeping the raw address. We do
+ * not currently rate-limit per-IP at this layer; do that at the
+ * proxy or add a short-window check here if abuse appears.
  */
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { id: surveyId } = await params;
+  const { slug } = await params;
+  if (!isValidSurveySlug(slug)) {
+    return NextResponse.json({ error: "Survey not found" }, { status: 404 });
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = submitResponseSchema.safeParse(body);
   if (!parsed.success) {
@@ -27,7 +34,7 @@ export async function POST(
   }
 
   const survey = await prisma.survey.findUnique({
-    where: { id: surveyId },
+    where: { publicSlug: slug },
     select: {
       id: true,
       published: true,
@@ -40,6 +47,7 @@ export async function POST(
   if (!survey || !survey.published) {
     return NextResponse.json({ error: "Survey not found" }, { status: 404 });
   }
+  const surveyId = survey.id;
 
   // Build a stepId → step lookup so we can validate each answer against
   // the step's type, and keep submission ordering stable.

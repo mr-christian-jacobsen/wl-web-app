@@ -2,7 +2,19 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/super-admin";
+import { createSurveyWithUniqueSlug } from "@/lib/survey-slug";
 import { createSurveySchema } from "@/lib/validators";
+
+const SUMMARY_SELECT = {
+  id: true,
+  publicSlug: true,
+  name: true,
+  description: true,
+  published: true,
+  publishedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 export async function GET() {
   const guard = await requireSuperAdmin();
@@ -11,13 +23,7 @@ export async function GET() {
   const surveys = await prisma.survey.findMany({
     orderBy: { updatedAt: "desc" },
     select: {
-      id: true,
-      name: true,
-      description: true,
-      published: true,
-      publishedAt: true,
-      createdAt: true,
-      updatedAt: true,
+      ...SUMMARY_SELECT,
       _count: { select: { steps: true } },
     },
   });
@@ -40,20 +46,12 @@ export async function POST(req: Request) {
     );
   }
 
-  const survey = await prisma.survey.create({
+  const survey = await createSurveyWithUniqueSlug({
     data: {
       name: parsed.data.name,
-      description: parsed.data.description,
+      description: parsed.data.description ?? null,
     },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      published: true,
-      publishedAt: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: SUMMARY_SELECT,
   });
 
   return NextResponse.json({ survey: { ...survey, stepCount: 0 } }, { status: 201 });

@@ -2,18 +2,21 @@ import { notFound } from "next/navigation";
 
 import { SurveyForm } from "@/components/surveys/SurveyForm";
 import { prisma } from "@/lib/db";
+import { isValidSurveySlug } from "@/lib/survey-slug";
 
 export default async function PublicSurveyPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
+  if (!isValidSurveySlug(slug)) notFound();
 
   const survey = await prisma.survey.findUnique({
-    where: { id },
+    where: { publicSlug: slug },
     select: {
       id: true,
+      publicSlug: true,
       name: true,
       description: true,
       published: true,
@@ -43,7 +46,15 @@ export default async function PublicSurveyPage({
           </p>
         )}
       </header>
-      <SurveyForm survey={survey} mode="live" />
+      <SurveyForm
+        survey={{
+          publicSlug: survey.publicSlug,
+          name: survey.name,
+          description: survey.description,
+          steps: survey.steps,
+        }}
+        mode="live"
+      />
     </section>
   );
 }

@@ -61,6 +61,7 @@ export async function POST(
     },
     select: {
       id: true,
+      publicSlug: true,
       name: true,
       description: true,
       published: true,

@@ -39,11 +39,19 @@ model User {
 /// pattern.
 model Survey {
   id          String    @id @default(cuid())
+  /// 6-char [a-zA-Z] random handle used as the public URL segment
+  /// (`/s/{publicSlug}`). Generated at creation time with retry-on-
+  /// collision (see `src/lib/survey-slug.ts`). The cuid id is kept as
+  /// the primary key and is used everywhere admin-side; we don't
+  /// expose it publicly so leaking one survey's URL doesn't help an
+  /// attacker enumerate others.
+  publicSlug  String    @unique
   name        String
   description String?
-  /// Toggled by an admin from the editor. Public `/s/[id]` returns 404
-  /// while false; the admin-only `/super-admin/surveys/[id]/preview`
-  /// page renders the form regardless so admins can dry-run drafts.
+  /// Toggled by an admin from the editor. Public `/s/{publicSlug}`
+  /// returns 404 while false; the admin-only
+  /// `/super-admin/surveys/[id]/preview` page renders the form
+  /// regardless so admins can dry-run drafts.
   published   Boolean   @default(false)
   /// First time the survey was published. Lets us tell "draft, never
   /// shipped" apart from "was live, taken back down".

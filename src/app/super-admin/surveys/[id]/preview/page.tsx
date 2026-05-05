@@ -21,6 +21,7 @@ export default async function SurveyPreviewPage({
     where: { id },
     select: {
       id: true,
+      publicSlug: true,
       name: true,
       description: true,
       published: true,

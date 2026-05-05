@@ -15,6 +15,7 @@ export default async function SurveyEditorPage({
     where: { id },
     select: {
       id: true,
+      publicSlug: true,
       name: true,
       description: true,
       published: true,

@@ -15,7 +15,7 @@ type Step = {
 };
 
 type Survey = {
-  id: string;
+  publicSlug: string;
   name: string;
   description: string | null;
   steps: Step[];
@@ -58,7 +58,7 @@ export function SurveyForm({ survey, mode = "live" }: { survey: Survey; mode?: M
     }
 
     const answers = survey.steps.map((s) => ({ stepId: s.id, value: values[s.id] ?? "" }));
-    const res = await fetch(`/api/surveys/${survey.id}/responses`, {
+    const res = await fetch(`/api/surveys/${survey.publicSlug}/responses`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ answers }),

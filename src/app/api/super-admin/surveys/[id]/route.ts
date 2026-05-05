@@ -7,6 +7,7 @@ import { updateSurveySchema } from "@/lib/validators";
 
 const SURVEY_SELECT = {
   id: true,
+  publicSlug: true,
   name: true,
   description: true,
   published: true,

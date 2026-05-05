@@ -41,6 +41,7 @@ type Step = {
 
 type Survey = {
   id: string;
+  publicSlug: string;
   name: string;
   description: string | null;
   published: boolean;
@@ -163,7 +164,7 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
     await persistOrder(reordered);
   }
 
-  const publicUrl = `/s/${survey.id}`;
+  const publicUrl = `/s/${survey.publicSlug}`;
   const previewUrl = `/super-admin/surveys/${survey.id}/preview`;
 
   return (
@@ -224,6 +225,11 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
             >
               Public link ↗
             </Link>
+          )}
+          {published && (
+            <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              /s/{survey.publicSlug}
+            </code>
           )}
           <button
             type="button"
