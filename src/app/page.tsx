@@ -15,20 +15,12 @@ export default async function HomePage() {
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         {session ? (
-          <>
-            <Link
-              href="/flows"
-              className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
-            >
-              Go to flows
-            </Link>
-            <Link
-              href="/profile"
-              className="rounded-md border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800"
-            >
-              Profile
-            </Link>
-          </>
+          <Link
+            href="/profile"
+            className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+          >
+            Go to profile
+          </Link>
         ) : (
           <>
             <Link

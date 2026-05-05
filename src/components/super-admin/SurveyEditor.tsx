@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
-import { StepTypePicker } from "@/components/flows/StepTypePicker";
+import { StepTypePicker } from "@/components/super-admin/StepTypePicker";
 import { DEFAULT_STEP_TYPE_KEY, getStepType } from "@/lib/step-types";
 
 type Step = {
@@ -15,7 +15,7 @@ type Step = {
   notes: string | null;
 };
 
-type Flow = {
+type Survey = {
   id: string;
   name: string;
   description: string | null;
@@ -24,11 +24,11 @@ type Flow = {
 
 type Status = { kind: "idle" } | { kind: "ok"; msg: string } | { kind: "err"; msg: string };
 
-export function FlowEditor({ flow }: { flow: Flow }) {
+export function SurveyEditor({ survey }: { survey: Survey }) {
   const router = useRouter();
-  const [name, setName] = useState(flow.name);
-  const [description, setDescription] = useState(flow.description ?? "");
-  const [steps, setSteps] = useState<Step[]>(flow.steps);
+  const [name, setName] = useState(survey.name);
+  const [description, setDescription] = useState(survey.description ?? "");
+  const [steps, setSteps] = useState<Step[]>(survey.steps);
   const [detailsStatus, setDetailsStatus] = useState<Status>({ kind: "idle" });
   const [detailsPending, setDetailsPending] = useState(false);
 
@@ -36,7 +36,7 @@ export function FlowEditor({ flow }: { flow: Flow }) {
     e.preventDefault();
     setDetailsPending(true);
     setDetailsStatus({ kind: "idle" });
-    const res = await fetch(`/api/flows/${flow.id}`, {
+    const res = await fetch(`/api/super-admin/surveys/${survey.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name, description: description || null }),
@@ -52,15 +52,15 @@ export function FlowEditor({ flow }: { flow: Flow }) {
     router.refresh();
   }
 
-  async function deleteFlow() {
-    if (!confirm(`Delete "${flow.name}" and all its steps?`)) return;
-    const res = await fetch(`/api/flows/${flow.id}`, { method: "DELETE" });
+  async function deleteSurvey() {
+    if (!confirm(`Delete "${survey.name}" and all its steps?`)) return;
+    const res = await fetch(`/api/super-admin/surveys/${survey.id}`, { method: "DELETE" });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      alert(body?.error ?? "Could not delete flow");
+      alert(body?.error ?? "Could not delete survey");
       return;
     }
-    router.push("/flows");
+    router.push("/super-admin/surveys");
     router.refresh();
   }
 
@@ -95,7 +95,7 @@ export function FlowEditor({ flow }: { flow: Flow }) {
     const reordered = next.map((s, i) => ({ ...s, position: i }));
     setSteps(reordered);
 
-    const res = await fetch(`/api/flows/${flow.id}/steps/reorder`, {
+    const res = await fetch(`/api/super-admin/surveys/${survey.id}/steps/reorder`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ stepIds: reordered.map((s) => s.id) }),
@@ -114,11 +114,11 @@ export function FlowEditor({ flow }: { flow: Flow }) {
         onSubmit={saveDetails}
         className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
       >
-        <h2 className="text-lg font-semibold">Flow details</h2>
+        <h2 className="text-lg font-semibold">Survey details</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Name" htmlFor="flow-name">
+          <Field label="Name" htmlFor="survey-name">
             <input
-              id="flow-name"
+              id="survey-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -126,9 +126,9 @@ export function FlowEditor({ flow }: { flow: Flow }) {
               className={inputClass}
             />
           </Field>
-          <Field label="Description" htmlFor="flow-description">
+          <Field label="Description" htmlFor="survey-description">
             <textarea
-              id="flow-description"
+              id="survey-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
@@ -139,14 +139,14 @@ export function FlowEditor({ flow }: { flow: Flow }) {
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button type="submit" disabled={detailsPending} className={buttonClass + " sm:w-auto"}>
-            {detailsPending ? "Saving…" : "Save flow"}
+            {detailsPending ? "Saving…" : "Save survey"}
           </button>
           <button
             type="button"
-            onClick={deleteFlow}
+            onClick={deleteSurvey}
             className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
           >
-            Delete flow
+            Delete survey
           </button>
           {detailsStatus.kind !== "idle" && (
             <span
@@ -172,7 +172,7 @@ export function FlowEditor({ flow }: { flow: Flow }) {
           {steps.map((step, i) => (
             <StepRow
               key={step.id}
-              flowId={flow.id}
+              surveyId={survey.id}
               step={step}
               isFirst={i === 0}
               isLast={i === steps.length - 1}
@@ -190,7 +190,7 @@ export function FlowEditor({ flow }: { flow: Flow }) {
         )}
 
         <div className="mt-6 border-t border-slate-200 pt-6 dark:border-slate-800">
-          <AddStepForm flowId={flow.id} onAdded={applyAddedStep} />
+          <AddStepForm surveyId={survey.id} onAdded={applyAddedStep} />
         </div>
       </div>
     </div>
@@ -198,7 +198,7 @@ export function FlowEditor({ flow }: { flow: Flow }) {
 }
 
 function StepRow({
-  flowId,
+  surveyId,
   step,
   isFirst,
   isLast,
@@ -206,7 +206,7 @@ function StepRow({
   onDeleted,
   onMove,
 }: {
-  flowId: string;
+  surveyId: string;
   step: Step;
   isFirst: boolean;
   isLast: boolean;
@@ -219,7 +219,9 @@ function StepRow({
 
   async function onDelete() {
     if (!confirm(`Delete step "${step.title}"?`)) return;
-    const res = await fetch(`/api/flows/${flowId}/steps/${step.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/super-admin/surveys/${surveyId}/steps/${step.id}`, {
+      method: "DELETE",
+    });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
       alert(body?.error ?? "Could not delete step");
@@ -260,7 +262,7 @@ function StepRow({
       <div className="min-w-0 flex-1">
         {editing ? (
           <StepEditForm
-            flowId={flowId}
+            surveyId={surveyId}
             step={step}
             onCancel={() => setEditing(false)}
             onUpdated={(s) => {
@@ -304,12 +306,12 @@ function StepRow({
 }
 
 function StepEditForm({
-  flowId,
+  surveyId,
   step,
   onCancel,
   onUpdated,
 }: {
-  flowId: string;
+  surveyId: string;
   step: Step;
   onCancel: () => void;
   onUpdated: (step: Step) => void;
@@ -324,7 +326,7 @@ function StepEditForm({
     e.preventDefault();
     setPending(true);
     setError(null);
-    const res = await fetch(`/api/flows/${flowId}/steps/${step.id}`, {
+    const res = await fetch(`/api/super-admin/surveys/${surveyId}/steps/${step.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ type, title, notes: notes || null }),
@@ -385,10 +387,10 @@ function StepEditForm({
 }
 
 function AddStepForm({
-  flowId,
+  surveyId,
   onAdded,
 }: {
-  flowId: string;
+  surveyId: string;
   onAdded: (step: Step) => void;
 }) {
   const [type, setType] = useState<string>(DEFAULT_STEP_TYPE_KEY);
@@ -401,7 +403,7 @@ function AddStepForm({
     e.preventDefault();
     setPending(true);
     setError(null);
-    const res = await fetch(`/api/flows/${flowId}/steps`, {
+    const res = await fetch(`/api/super-admin/surveys/${surveyId}/steps`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ type, title, notes: notes || null }),

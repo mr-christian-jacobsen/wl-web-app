@@ -151,13 +151,13 @@ export type UpdateSmtpSettingsInput = z.infer<typeof updateSmtpSettingsSchema>;
 export const testEmailSchema = z.object({ to: emailSchema });
 export type TestEmailInput = z.infer<typeof testEmailSchema>;
 
-const flowNameSchema = z
+const surveyNameSchema = z
   .string()
   .trim()
   .min(1, "Name is required")
   .max(120, "Name must be at most 120 characters");
 
-const flowDescriptionSchema = z
+const surveyDescriptionSchema = z
   .string()
   .trim()
   .max(2_000, "Description must be at most 2000 characters")
@@ -183,21 +183,21 @@ const stepTypeSchema = z.enum(STEP_TYPE_KEYS as [string, ...string[]], {
   errorMap: () => ({ message: "Unknown step type" }),
 });
 
-export const createFlowSchema = z.object({
-  name: flowNameSchema,
-  description: flowDescriptionSchema,
+export const createSurveySchema = z.object({
+  name: surveyNameSchema,
+  description: surveyDescriptionSchema,
 });
-export type CreateFlowInput = z.infer<typeof createFlowSchema>;
+export type CreateSurveyInput = z.infer<typeof createSurveySchema>;
 
-export const updateFlowSchema = z
+export const updateSurveySchema = z
   .object({
-    name: flowNameSchema.optional(),
-    description: flowDescriptionSchema,
+    name: surveyNameSchema.optional(),
+    description: surveyDescriptionSchema,
   })
   .refine((d) => d.name !== undefined || d.description !== undefined, {
     message: "Provide at least one field to update",
   });
-export type UpdateFlowInput = z.infer<typeof updateFlowSchema>;
+export type UpdateSurveyInput = z.infer<typeof updateSurveySchema>;
 
 export const createStepSchema = z.object({
   type: stepTypeSchema,
