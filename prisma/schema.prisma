@@ -30,6 +30,43 @@ model User {
   verificationTokens EmailVerificationToken[]
   usageSessions      UsageSession[]
   emails             Email[]
+  flows              Flow[]
+}
+
+/// A user-owned ordered sequence of steps. Steps live in a separate table
+/// so they can be re-ordered cheaply via `position` (0-based) without
+/// rewriting the whole flow row.
+model Flow {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps FlowStep[]
+
+  @@index([userId, updatedAt])
+}
+
+model FlowStep {
+  id        String   @id @default(cuid())
+  flowId    String
+  /// 0-based ordinal within the flow. Reordered by rewriting all positions
+  /// in a single transaction; gaps between values are not meaningful.
+  position  Int
+  /// Step kind — one of the keys in `STEP_TYPES` (see src/lib/step-types.ts).
+  /// Stored as a string so adding a new type doesn't need a migration.
+  type      String
+  title     String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([flowId, position])
 }
 
 model UsageSession {

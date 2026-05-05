@@ -5,7 +5,7 @@ import { authConfig } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const PROTECTED = ["/profile", "/super-admin"];
+const PROTECTED = ["/profile", "/flows", "/super-admin"];
 const SUPER_ADMIN_ONLY = ["/super-admin"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -34,7 +34,7 @@ export default auth((req) => {
 
   if (isAuthed && AUTH_PAGES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     const url = req.nextUrl.clone();
-    url.pathname = "/profile";
+    url.pathname = "/flows";
     url.search = "";
     return NextResponse.redirect(url);
   }

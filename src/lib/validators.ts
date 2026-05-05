@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { STEP_TYPE_KEYS } from "@/lib/step-types";
+
 export const emailSchema = z.string().trim().toLowerCase().email("Invalid email address");
 
 export const passwordSchema = z
@@ -148,3 +150,75 @@ export type UpdateSmtpSettingsInput = z.infer<typeof updateSmtpSettingsSchema>;
 
 export const testEmailSchema = z.object({ to: emailSchema });
 export type TestEmailInput = z.infer<typeof testEmailSchema>;
+
+const flowNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Name is required")
+  .max(120, "Name must be at most 120 characters");
+
+const flowDescriptionSchema = z
+  .string()
+  .trim()
+  .max(2_000, "Description must be at most 2000 characters")
+  .optional()
+  .nullable()
+  .transform((v) => (v && v.length > 0 ? v : null));
+
+const stepTitleSchema = z
+  .string()
+  .trim()
+  .min(1, "Title is required")
+  .max(160, "Title must be at most 160 characters");
+
+const stepNotesSchema = z
+  .string()
+  .trim()
+  .max(4_000, "Notes must be at most 4000 characters")
+  .optional()
+  .nullable()
+  .transform((v) => (v && v.length > 0 ? v : null));
+
+const stepTypeSchema = z.enum(STEP_TYPE_KEYS as [string, ...string[]], {
+  errorMap: () => ({ message: "Unknown step type" }),
+});
+
+export const createFlowSchema = z.object({
+  name: flowNameSchema,
+  description: flowDescriptionSchema,
+});
+export type CreateFlowInput = z.infer<typeof createFlowSchema>;
+
+export const updateFlowSchema = z
+  .object({
+    name: flowNameSchema.optional(),
+    description: flowDescriptionSchema,
+  })
+  .refine((d) => d.name !== undefined || d.description !== undefined, {
+    message: "Provide at least one field to update",
+  });
+export type UpdateFlowInput = z.infer<typeof updateFlowSchema>;
+
+export const createStepSchema = z.object({
+  type: stepTypeSchema,
+  title: stepTitleSchema,
+  notes: stepNotesSchema,
+});
+export type CreateStepInput = z.infer<typeof createStepSchema>;
+
+export const updateStepSchema = z
+  .object({
+    type: stepTypeSchema.optional(),
+    title: stepTitleSchema.optional(),
+    notes: stepNotesSchema,
+  })
+  .refine(
+    (d) => d.type !== undefined || d.title !== undefined || d.notes !== undefined,
+    { message: "Provide at least one field to update" },
+  );
+export type UpdateStepInput = z.infer<typeof updateStepSchema>;
+
+export const reorderStepsSchema = z.object({
+  stepIds: z.array(z.string().min(1)).min(1, "Provide at least one step id"),
+});
+export type ReorderStepsInput = z.infer<typeof reorderStepsSchema>;
