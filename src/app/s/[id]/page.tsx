@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { SurveyEditor } from "@/components/super-admin/SurveyEditor";
+import { SurveyForm } from "@/components/surveys/SurveyForm";
 import { prisma } from "@/lib/db";
 
-export default async function SurveyEditorPage({
+export default async function PublicSurveyPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -18,7 +17,6 @@ export default async function SurveyEditorPage({
       name: true,
       description: true,
       published: true,
-      publishedAt: true,
       steps: {
         orderBy: { position: "asc" },
         select: {
@@ -32,22 +30,20 @@ export default async function SurveyEditorPage({
       },
     },
   });
-  if (!survey) notFound();
+
+  if (!survey || !survey.published) notFound();
 
   return (
-    <section className="flex w-full flex-col gap-6">
-      <Link
-        href="/super-admin/surveys"
-        className="text-sm text-slate-500 hover:underline"
-      >
-        ← All surveys
-      </Link>
-      <SurveyEditor
-        survey={{
-          ...survey,
-          publishedAt: survey.publishedAt?.toISOString() ?? null,
-        }}
-      />
+    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-8">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{survey.name}</h1>
+        {survey.description && (
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            {survey.description}
+          </p>
+        )}
+      </header>
+      <SurveyForm survey={survey} mode="live" />
     </section>
   );
 }

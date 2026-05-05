@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/super-admin";
-import { updateStepSchema } from "@/lib/validators";
+import { normalizeOptionsForType, updateStepSchema } from "@/lib/validators";
 
 export async function PATCH(
   req: Request,
@@ -22,22 +22,42 @@ export async function PATCH(
     );
   }
 
-  const owned = await prisma.surveyStep.findFirst({
+  const existing = await prisma.surveyStep.findFirst({
     where: { id: stepId, surveyId },
-    select: { id: true },
+    select: { id: true, type: true, options: true },
   });
-  if (!owned) return NextResponse.json({ error: "Step not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Step not found" }, { status: 404 });
 
   const data: Prisma.SurveyStepUpdateInput = {};
   if (parsed.data.type !== undefined) data.type = parsed.data.type;
   if (parsed.data.title !== undefined) data.title = parsed.data.title;
   if (parsed.data.notes !== undefined) data.notes = parsed.data.notes;
 
+  // Re-normalize options whenever either the type or the options field
+  // changes, so a type switch from choice → text clears the now-meaningless
+  // options blob, and vice-versa enforces the ≥2 options invariant.
+  if (parsed.data.options !== undefined || parsed.data.type !== undefined) {
+    const effectiveType = parsed.data.type ?? existing.type;
+    const rawOptions = parsed.data.options ?? existing.options;
+    const result = normalizeOptionsForType(effectiveType, rawOptions);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    data.options = result.value;
+  }
+
   const step = await prisma.$transaction(async (tx) => {
     const updated = await tx.surveyStep.update({
       where: { id: stepId },
       data,
-      select: { id: true, position: true, type: true, title: true, notes: true },
+      select: {
+        id: true,
+        position: true,
+        type: true,
+        title: true,
+        notes: true,
+        options: true,
+      },
     });
     await tx.survey.update({ where: { id: surveyId }, data: { updatedAt: new Date() } });
     return updated;

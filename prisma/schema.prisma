@@ -38,13 +38,21 @@ model User {
 /// can manage any survey, matching the EmailTemplate / SystemSetting
 /// pattern.
 model Survey {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  /// Toggled by an admin from the editor. Public `/s/[id]` returns 404
+  /// while false; the admin-only `/super-admin/surveys/[id]/preview`
+  /// page renders the form regardless so admins can dry-run drafts.
+  published   Boolean   @default(false)
+  /// First time the survey was published. Lets us tell "draft, never
+  /// shipped" apart from "was live, taken back down".
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  steps SurveyStep[]
+  steps     SurveyStep[]
+  responses SurveyResponse[]
 
   @@index([updatedAt])
 }
@@ -61,12 +69,51 @@ model SurveyStep {
   type      String
   title     String
   notes     String?
+  /// Newline-separated option labels. Only meaningful for choice-style
+  /// types (`single_choice`, `multi_choice`); null otherwise. Stored as
+  /// a single string instead of a child table because options are
+  /// always read together with the step and never queried by value.
+  options   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  survey  Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers SurveyAnswer[]
 
   @@index([surveyId, position])
+}
+
+model SurveyResponse {
+  id          String   @id @default(cuid())
+  surveyId    String
+  submittedAt DateTime @default(now())
+  /// SHA-256 of the submitter IP — kept so admins can spot abuse without
+  /// storing raw addresses. Hash fields are skipped by the DB-write
+  /// normaliser in `src/lib/db.ts` (see `NEVER_NORMALIZE`).
+  ipHash      String?
+  userAgent   String?
+
+  survey  Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers SurveyAnswer[]
+
+  @@index([surveyId, submittedAt])
+}
+
+model SurveyAnswer {
+  id         String @id @default(cuid())
+  responseId String
+  stepId     String
+  /// Free-form rendering of the user's answer. Choice-style types store
+  /// the chosen option label; multi-choice joins multiple labels with
+  /// "\n". A single string keeps reading simple at the cost of needing
+  /// to split on the client when re-rendering multi_choice.
+  valueText  String
+
+  response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  step     SurveyStep     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([responseId])
+  @@index([stepId])
 }
 
 model UsageSession {

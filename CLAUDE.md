@@ -48,6 +48,39 @@ This applies to `create`, `update`, `updateMany`, `upsert`, `createMany`. Both s
 - If a new field stores a hash or any binary-identity value where whitespace matters, add its name to `NEVER_NORMALIZE` in `src/lib/db.ts`.
 - The function `normalizeWriteData` is exported and unit-tested in `tests/unit/db-normalize.test.ts` — extend the tests when changing the rules.
 
+## Surveys (`/super-admin/surveys`, public `/s/[id]`)
+
+Multi-step surveys are an admin-managed resource (global, like
+`EmailTemplate` — no `userId` on `Survey`).
+
+- **Admin CRUD** — `/super-admin/surveys` lists drafts + live surveys;
+  `/super-admin/surveys/[id]` is the editor (rename, edit description,
+  add/edit/delete/reorder steps, change step types, publish).
+- **Step types** are defined in `src/lib/step-types.ts`. Each entry has
+  an inline-SVG `icon` rendered as a tile in the picker. Choice types
+  set `requiresOptions: true`; the editor surfaces the options field
+  automatically and the validator + publish guard enforce ≥2 options
+  before a survey can go live.
+- **Publishing** — `/api/super-admin/surveys/[id]/publish` flips
+  `Survey.published`. Publishing is refused when the survey has zero
+  steps or any choice step has fewer than two options. `publishedAt`
+  is set the first time the survey goes live and never cleared.
+- **Preview vs public** — `/super-admin/surveys/[id]/preview` renders
+  the same form as the public route but works regardless of
+  `published`, and the form's submit is a no-op (no rows written). The
+  public route `/s/[id]` returns 404 unless `published === true`.
+- **Submissions** — `POST /api/surveys/[id]/responses` is unauthenticated
+  but only accepts answers for published surveys. Submissions are
+  validated per step (choice answers must be in `options`, `rating` is
+  1–5, `yes_no` is `"yes" | "no"`, `date` is `YYYY-MM-DD`). The
+  submitter IP is stored as a truncated SHA-256 hash via
+  `hashIp`/`ipFromHeaders` from `src/lib/usage.ts` — there's no
+  rate-limit at this layer yet.
+- **Reordering** keeps the `0..N-1` `position` invariant. Both delete
+  and the bulk reorder endpoint rewrite all positions in a single
+  transaction. The editor uses `@dnd-kit/sortable` for drag with
+  up/down arrows kept for keyboard a11y.
+
 ## Email templates (related)
 
 All transactional emails go through `src/lib/email.ts` and the templates in the `EmailTemplate` table. Each helper (`sendUserInvitationEmail`, `sendEmailVerificationEmail`, `sendPasswordResetEmail`, `sendEmailChangeConfirmation`) renders the admin-defined template for its key if one exists; otherwise it falls back to a built-in copy. No flow can break because of a missing template. The known keys + variables are listed in `KNOWN_TEMPLATES` (`src/lib/templates.ts`) and surfaced on `/super-admin/email-templates` so admins can see what they can override.

@@ -1,12 +1,18 @@
 /**
- * Catalogue of step kinds a user can pick when adding a step to a flow.
- * The `icon` field is an inline SVG (data URI) used as the small image
- * shown in the step-type picker. Keeping these inline avoids needing to
- * ship binary assets and keeps the picker render synchronous.
+ * Catalogue of step kinds a survey author can pick when adding a step.
+ * Each entry has a small inline-SVG `icon` rendered as a tile in the
+ * type picker. Types are kept inline (no asset pipeline) so the picker
+ * renders synchronously and the registry can be extended without
+ * shipping new files.
  *
- * To add a new type: append an entry here. The DB stores the `key` only;
- * unknown keys round-trip through the UI by falling back to the `unknown`
- * placeholder rendered by `getStepType`.
+ * `requiresOptions: true` means the step needs a non-empty list of
+ * choice labels (`single_choice`, `multi_choice`). The validator
+ * enforces this; the editor surfaces the options field automatically
+ * when this flag is set.
+ *
+ * To add a new type: append an entry. The DB stores the `key` only;
+ * unknown keys round-trip through the UI by falling back to the
+ * `unknown` placeholder rendered by `getStepType`.
  */
 
 export type StepType = {
@@ -14,6 +20,7 @@ export type StepType = {
   label: string;
   description: string;
   icon: string;
+  requiresOptions?: boolean;
 };
 
 const svg = (markup: string) =>
@@ -24,46 +31,48 @@ const svg = (markup: string) =>
 
 export const STEP_TYPES: ReadonlyArray<StepType> = [
   {
-    key: "start",
-    label: "Start",
-    description: "Entry point of the flow.",
-    icon: svg(`<circle cx="12" cy="12" r="9"/><polygon points="10,8 16,12 10,16" fill="currentColor"/>`),
+    key: "short_text",
+    label: "Short text",
+    description: "Single-line free-text answer.",
+    icon: svg(`<rect x="3" y="9" width="18" height="6" rx="1.5"/><path d="M6 12h6"/>`),
   },
   {
-    key: "action",
-    label: "Action",
-    description: "Performs work — call an API, run a job, etc.",
-    icon: svg(`<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 12h8"/><path d="M8 9h5"/><path d="M8 15h6"/>`),
+    key: "long_text",
+    label: "Long text",
+    description: "Multi-line free-text answer.",
+    icon: svg(`<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M6 9h12"/><path d="M6 12h12"/><path d="M6 15h8"/>`),
   },
   {
-    key: "decision",
-    label: "Decision",
-    description: "Branches the flow based on a condition.",
-    icon: svg(`<polygon points="12,3 21,12 12,21 3,12"/><path d="M9 12h6"/><path d="M12 9v6"/>`),
+    key: "single_choice",
+    label: "Single choice",
+    description: "Pick exactly one option.",
+    icon: svg(`<circle cx="7" cy="8" r="2.5"/><circle cx="7" cy="8" r=".75" fill="currentColor"/><path d="M12 8h7"/><circle cx="7" cy="16" r="2.5"/><path d="M12 16h7"/>`),
+    requiresOptions: true,
   },
   {
-    key: "wait",
-    label: "Wait",
-    description: "Pauses for a duration or until an event.",
-    icon: svg(`<circle cx="12" cy="13" r="7"/><path d="M12 9v4l2.5 2.5"/><path d="M9 3h6"/>`),
+    key: "multi_choice",
+    label: "Multiple choice",
+    description: "Pick zero or more options.",
+    icon: svg(`<rect x="4.5" y="5.5" width="5" height="5" rx="1"/><path d="M5.5 8l1.25 1.25L8.75 6.75"/><path d="M12 8h7"/><rect x="4.5" y="13.5" width="5" height="5" rx="1"/><path d="M12 16h7"/>`),
+    requiresOptions: true,
   },
   {
-    key: "notify",
-    label: "Notify",
-    description: "Sends a message — email, push, webhook.",
-    icon: svg(`<path d="M6 9a6 6 0 0 1 12 0v4l1.5 3h-15L6 13z"/><path d="M10 19a2 2 0 0 0 4 0"/>`),
+    key: "rating",
+    label: "Rating",
+    description: "1–5 star scale.",
+    icon: svg(`<polygon points="12,4 14.2,9 19.5,9.5 15.5,13 16.7,18.3 12,15.6 7.3,18.3 8.5,13 4.5,9.5 9.8,9"/>`),
   },
   {
-    key: "input",
-    label: "Input",
-    description: "Collects data from a user.",
-    icon: svg(`<rect x="3" y="8" width="18" height="9" rx="2"/><path d="M7 12h2"/><path d="M11 12h6"/>`),
+    key: "yes_no",
+    label: "Yes / No",
+    description: "Boolean answer.",
+    icon: svg(`<path d="M5 8l2.5 2.5L13 5"/><path d="M15 13l5 5"/><path d="M20 13l-5 5"/>`),
   },
   {
-    key: "end",
-    label: "End",
-    description: "Terminates the flow.",
-    icon: svg(`<circle cx="12" cy="12" r="9"/><rect x="9" y="9" width="6" height="6" fill="currentColor"/>`),
+    key: "date",
+    label: "Date",
+    description: "Calendar date.",
+    icon: svg(`<rect x="3.5" y="5.5" width="17" height="14" rx="1.5"/><path d="M3.5 10h17"/><path d="M8 4v3"/><path d="M16 4v3"/><circle cx="12" cy="14.5" r="1.25" fill="currentColor"/>`),
   },
 ];
 
@@ -71,7 +80,7 @@ const STEP_TYPE_BY_KEY = new Map(STEP_TYPES.map((t) => [t.key, t]));
 
 export const STEP_TYPE_KEYS = STEP_TYPES.map((t) => t.key);
 
-export const DEFAULT_STEP_TYPE_KEY = "action";
+export const DEFAULT_STEP_TYPE_KEY = "short_text";
 
 const UNKNOWN_TYPE: StepType = {
   key: "unknown",
@@ -82,4 +91,17 @@ const UNKNOWN_TYPE: StepType = {
 
 export function getStepType(key: string): StepType {
   return STEP_TYPE_BY_KEY.get(key) ?? { ...UNKNOWN_TYPE, key };
+}
+
+export function stepTypeRequiresOptions(key: string): boolean {
+  return STEP_TYPE_BY_KEY.get(key)?.requiresOptions === true;
+}
+
+/** Splits the stored `options` blob into an array, dropping blanks. */
+export function parseOptions(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 }

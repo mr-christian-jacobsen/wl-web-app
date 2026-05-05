@@ -14,6 +14,8 @@ export async function GET() {
       id: true,
       name: true,
       description: true,
+      published: true,
+      publishedAt: true,
       createdAt: true,
       updatedAt: true,
       _count: { select: { steps: true } },
@@ -43,7 +45,15 @@ export async function POST(req: Request) {
       name: parsed.data.name,
       description: parsed.data.description,
     },
-    select: { id: true, name: true, description: true, createdAt: true, updatedAt: true },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      published: true,
+      publishedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 
   return NextResponse.json({ survey: { ...survey, stepCount: 0 } }, { status: 201 });

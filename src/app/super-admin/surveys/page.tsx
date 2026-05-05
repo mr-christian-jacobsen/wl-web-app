@@ -8,16 +8,19 @@ export default async function SurveysPage() {
       id: true,
       name: true,
       description: true,
+      published: true,
+      publishedAt: true,
       createdAt: true,
       updatedAt: true,
       _count: { select: { steps: true } },
     },
   });
 
-  const initial = surveys.map(({ _count, createdAt, updatedAt, ...rest }) => ({
+  const initial = surveys.map(({ _count, createdAt, updatedAt, publishedAt, ...rest }) => ({
     ...rest,
     createdAt: createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
+    publishedAt: publishedAt?.toISOString() ?? null,
     stepCount: _count.steps,
   }));
 

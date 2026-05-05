@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/super-admin";
-import { createStepSchema } from "@/lib/validators";
+import { createStepSchema, normalizeOptionsForType } from "@/lib/validators";
 
 export async function POST(
   req: Request,
@@ -19,6 +19,11 @@ export async function POST(
       { error: parsed.error.issues[0]?.message ?? "Invalid input" },
       { status: 400 },
     );
+  }
+
+  const optionsResult = normalizeOptionsForType(parsed.data.type, parsed.data.options);
+  if (!optionsResult.ok) {
+    return NextResponse.json({ error: optionsResult.error }, { status: 400 });
   }
 
   const survey = await prisma.survey.findUnique({
@@ -41,8 +46,16 @@ export async function POST(
         type: parsed.data.type,
         title: parsed.data.title,
         notes: parsed.data.notes,
+        options: optionsResult.value,
       },
-      select: { id: true, position: true, type: true, title: true, notes: true },
+      select: {
+        id: true,
+        position: true,
+        type: true,
+        title: true,
+        notes: true,
+        options: true,
+      },
     });
     await tx.survey.update({ where: { id: surveyId }, data: { updatedAt: new Date() } });
     return created;

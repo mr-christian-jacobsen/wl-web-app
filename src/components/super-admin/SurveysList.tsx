@@ -10,6 +10,8 @@ type SurveySummary = {
   id: string;
   name: string;
   description: string | null;
+  published: boolean;
+  publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
   stepCount: number;
@@ -138,7 +140,10 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
                 href={`/super-admin/surveys/${survey.id}`}
                 className="flex min-w-0 flex-1 flex-col gap-1 hover:opacity-80"
               >
-                <span className="truncate text-base font-medium">{survey.name}</span>
+                <span className="flex items-center gap-2">
+                  <span className="truncate text-base font-medium">{survey.name}</span>
+                  <PublishedBadge published={survey.published} />
+                </span>
                 {survey.description && (
                   <span className="truncate text-sm text-slate-600 dark:text-slate-400">
                     {survey.description}
@@ -170,5 +175,17 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
         </ul>
       )}
     </div>
+  );
+}
+
+function PublishedBadge({ published }: { published: boolean }) {
+  return published ? (
+    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
+      Live
+    </span>
+  ) : (
+    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+      Draft
+    </span>
   );
 }

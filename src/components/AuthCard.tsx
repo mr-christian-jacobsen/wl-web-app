@@ -36,7 +36,7 @@ export function Field({
   error,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   htmlFor: string;
   error?: string;
   children: React.ReactNode;

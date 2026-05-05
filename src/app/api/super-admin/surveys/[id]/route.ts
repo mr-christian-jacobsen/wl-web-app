@@ -5,6 +5,16 @@ import { prisma } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/super-admin";
 import { updateSurveySchema } from "@/lib/validators";
 
+const SURVEY_SELECT = {
+  id: true,
+  name: true,
+  description: true,
+  published: true,
+  publishedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -16,11 +26,7 @@ export async function GET(
   const survey = await prisma.survey.findUnique({
     where: { id },
     select: {
-      id: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
+      ...SURVEY_SELECT,
       steps: {
         orderBy: { position: "asc" },
         select: {
@@ -29,6 +35,7 @@ export async function GET(
           type: true,
           title: true,
           notes: true,
+          options: true,
         },
       },
     },
@@ -63,7 +70,7 @@ export async function PATCH(
     const survey = await prisma.survey.update({
       where: { id },
       data,
-      select: { id: true, name: true, description: true, createdAt: true, updatedAt: true },
+      select: SURVEY_SELECT,
     });
     return NextResponse.json({ survey });
   } catch (err) {
