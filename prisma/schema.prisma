@@ -32,6 +32,98 @@ model User {
   emails             Email[]
 }
 
+/// Admin-defined ordered survey. Steps live in a separate table so they
+/// can be re-ordered cheaply via `position` (0-based) without rewriting
+/// the whole survey row. Surveys are global resources — any super admin
+/// can manage any survey, matching the EmailTemplate / SystemSetting
+/// pattern.
+model Survey {
+  id          String    @id @default(cuid())
+  /// 6-char [a-zA-Z] random handle used as the public URL segment
+  /// (`/s/{publicSlug}`). Generated at creation time with retry-on-
+  /// collision (see `src/lib/survey-slug.ts`). The cuid id is kept as
+  /// the primary key and is used everywhere admin-side; we don't
+  /// expose it publicly so leaking one survey's URL doesn't help an
+  /// attacker enumerate others.
+  publicSlug  String    @unique
+  name        String
+  description String?
+  /// Toggled by an admin from the editor. Public `/s/{publicSlug}`
+  /// returns 404 while false; the admin-only
+  /// `/super-admin/surveys/[id]/preview` page renders the form
+  /// regardless so admins can dry-run drafts.
+  published   Boolean   @default(false)
+  /// First time the survey was published. Lets us tell "draft, never
+  /// shipped" apart from "was live, taken back down".
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  steps     SurveyStep[]
+  responses SurveyResponse[]
+
+  @@index([updatedAt])
+}
+
+model SurveyStep {
+  id        String   @id @default(cuid())
+  surveyId  String
+  /// 0-based ordinal within the survey. Reordered by rewriting all
+  /// positions in a single transaction; gaps between values are not
+  /// meaningful.
+  position  Int
+  /// Step kind — one of the keys in `STEP_TYPES` (see src/lib/step-types.ts).
+  /// Stored as a string so adding a new type doesn't need a migration.
+  type      String
+  title     String
+  notes     String?
+  /// Newline-separated option labels. Only meaningful for choice-style
+  /// types (`single_choice`, `multi_choice`); null otherwise. Stored as
+  /// a single string instead of a child table because options are
+  /// always read together with the step and never queried by value.
+  options   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  survey  Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers SurveyAnswer[]
+
+  @@index([surveyId, position])
+}
+
+model SurveyResponse {
+  id          String   @id @default(cuid())
+  surveyId    String
+  submittedAt DateTime @default(now())
+  /// SHA-256 of the submitter IP — kept so admins can spot abuse without
+  /// storing raw addresses. Hash fields are skipped by the DB-write
+  /// normaliser in `src/lib/db.ts` (see `NEVER_NORMALIZE`).
+  ipHash      String?
+  userAgent   String?
+
+  survey  Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers SurveyAnswer[]
+
+  @@index([surveyId, submittedAt])
+}
+
+model SurveyAnswer {
+  id         String @id @default(cuid())
+  responseId String
+  stepId     String
+  /// Free-form rendering of the user's answer. Choice-style types store
+  /// the chosen option label; multi-choice joins multiple labels with
+  /// "\n". A single string keeps reading simple at the cost of needing
+  /// to split on the client when re-rendering multi_choice.
+  valueText  String
+
+  response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  step     SurveyStep     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([responseId])
+  @@index([stepId])
+}
+
 model UsageSession {
   id           String    @id @default(cuid())
   userId       String
