@@ -88,6 +88,13 @@ export const adminCreateUserSchema = z.object({
   name: nameSchema,
   password: passwordSchema,
   isSuperAdmin: z.boolean().optional().default(false),
+  /**
+   * Optional preferred language. Same `string | null | undefined` shape
+   * as `updateProfileSchema.languageId` — null/undefined both mean
+   * "leave unset" at create time, which makes the user follow the
+   * system default. The route validates the id exists in the DB.
+   */
+  languageId: z.union([z.string().trim().min(1), z.null()]).optional(),
 });
 export type AdminCreateUserInput = z.infer<typeof adminCreateUserSchema>;
 
@@ -97,6 +104,7 @@ export const adminUpdateUserSchema = z
     email: emailSchema.optional(),
     password: passwordSchema.optional(),
     isSuperAdmin: z.boolean().optional(),
+    languageId: z.union([z.string().trim().min(1), z.null()]).optional(),
   })
   .refine((d) => Object.values(d).some((v) => v !== undefined), {
     message: "Provide at least one field to update",

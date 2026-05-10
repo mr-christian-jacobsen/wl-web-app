@@ -1,25 +1,36 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { flagEmoji, formatLocaleLabel } from "@/lib/locales";
 
 export type AdminUser = {
   id: string;
   email: string;
   name: string;
   isSuperAdmin: boolean;
+  languageId: string | null;
   createdAt: string;
+};
+
+export type LanguageOption = {
+  id: string;
+  countryCode: string;
+  languageCode: string;
+  isDefault: boolean;
 };
 
 type Mode = { kind: "idle" } | { kind: "create" } | { kind: "edit"; user: AdminUser };
 
 export function UsersTable({
   initialUsers,
+  languages,
   currentUserId,
 }: {
   initialUsers: AdminUser[];
+  languages: LanguageOption[];
   currentUserId: string;
 }) {
   const router = useRouter();
@@ -27,6 +38,11 @@ export function UsersTable({
   const [mode, setMode] = useState<Mode>({ kind: "idle" });
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const languagesById = useMemo(
+    () => new Map(languages.map((l) => [l.id, l])),
+    [languages],
+  );
 
   function refresh(next: AdminUser[]) {
     setUsers(next);
@@ -78,6 +94,7 @@ export function UsersTable({
             <tr>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Language</th>
               <th className="px-4 py-3">Super admin</th>
               <th className="px-4 py-3">Created</th>
               <th className="px-4 py-3 text-right">Actions</th>
@@ -95,6 +112,25 @@ export function UsersTable({
                   )}
                 </td>
                 <td className="px-4 py-3">{u.name}</td>
+                <td className="px-4 py-3 text-xs">
+                  {u.languageId ? (
+                    (() => {
+                      const lang = languagesById.get(u.languageId);
+                      return lang ? (
+                        <span className="whitespace-nowrap">
+                          <span className="mr-1" aria-hidden>
+                            {flagEmoji(lang.countryCode)}
+                          </span>
+                          {lang.countryCode}-{lang.languageCode}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">{u.languageId}</span>
+                      );
+                    })()
+                  ) : (
+                    <span className="text-slate-400">Default</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">{u.isSuperAdmin ? "Yes" : "No"}</td>
                 <td className="px-4 py-3 text-slate-500">
                   {new Date(u.createdAt).toLocaleDateString()}
@@ -125,7 +161,7 @@ export function UsersTable({
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                   No users yet.
                 </td>
               </tr>
@@ -137,6 +173,7 @@ export function UsersTable({
       {mode.kind !== "idle" && (
         <UserDialog
           mode={mode}
+          languages={languages}
           onClose={() => setMode({ kind: "idle" })}
           onSaved={(saved, isCreate) => {
             if (isCreate) {
@@ -155,11 +192,13 @@ export function UsersTable({
 
 function UserDialog({
   mode,
+  languages,
   onClose,
   onSaved,
   onError,
 }: {
   mode: Exclude<Mode, { kind: "idle" }>;
+  languages: LanguageOption[];
   onClose: () => void;
   onSaved: (user: AdminUser, isCreate: boolean) => void;
   onError: (msg: string) => void;
@@ -168,6 +207,10 @@ function UserDialog({
   const initial = isCreate ? null : mode.user;
   const [pending, setPending] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  // Empty string in the <select> means "no preference" → null in the
+  // payload, which clears the column on PATCH and leaves it unset on
+  // POST (both result in the user following the system default).
+  const [languageId, setLanguageId] = useState<string>(initial?.languageId ?? "");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -178,6 +221,7 @@ function UserDialog({
       name: String(fd.get("name") ?? ""),
       email: String(fd.get("email") ?? ""),
       isSuperAdmin: fd.get("isSuperAdmin") === "on",
+      languageId: languageId === "" ? null : languageId,
     };
     const password = String(fd.get("password") ?? "");
     if (password) payload.password = password;
@@ -257,6 +301,22 @@ function UserDialog({
             required={isCreate}
             className={inputClass}
           />
+        </Field>
+        <Field label="Language" htmlFor="languageId">
+          <select
+            id="languageId"
+            value={languageId}
+            onChange={(e) => setLanguageId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Site default</option>
+            {languages.map((l) => (
+              <option key={l.id} value={l.id}>
+                {flagEmoji(l.countryCode)} {formatLocaleLabel(l.countryCode, l.languageCode)}
+                {l.isDefault ? " — Default" : ""}
+              </option>
+            ))}
+          </select>
         </Field>
         <label className="flex items-center gap-2 text-sm">
           <input

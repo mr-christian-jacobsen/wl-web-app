@@ -80,9 +80,41 @@ describe("validators", () => {
     expect(adminUpdateUserSchema.safeParse({ name: "x" }).success).toBe(true);
     expect(adminUpdateUserSchema.safeParse({ isSuperAdmin: true }).success).toBe(true);
     expect(adminUpdateUserSchema.safeParse({ password: "abcdefgh" }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({ languageId: "lang-1" }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({ languageId: null }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({ languageId: "" }).success).toBe(false);
     expect(adminUpdateUserSchema.safeParse({}).success).toBe(false);
     expect(
       adminUpdateUserSchema.safeParse({ email: "not-email", isSuperAdmin: true }).success,
+    ).toBe(false);
+  });
+
+  it("admin-create-user accepts optional languageId", () => {
+    const r = adminCreateUserSchema.parse({
+      email: "a@b.co",
+      name: "X",
+      password: "abcdefgh",
+      languageId: "lang-1",
+    });
+    expect(r.languageId).toBe("lang-1");
+    // null is accepted; means "no preference"
+    expect(
+      adminCreateUserSchema.safeParse({
+        email: "a@b.co",
+        name: "X",
+        password: "abcdefgh",
+        languageId: null,
+      }).success,
+    ).toBe(true);
+    // empty string is rejected so empty form fields can't smuggle in
+    // an invalid id
+    expect(
+      adminCreateUserSchema.safeParse({
+        email: "a@b.co",
+        name: "X",
+        password: "abcdefgh",
+        languageId: "",
+      }).success,
     ).toBe(false);
   });
 
