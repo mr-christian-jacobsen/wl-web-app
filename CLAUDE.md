@@ -81,6 +81,33 @@ Multi-step surveys are an admin-managed resource (global, like
   transaction. The editor uses `@dnd-kit/sortable` for drag with
   up/down arrows kept for keyboard a11y.
 
+## Languages (`/super-admin/languages`)
+
+Admin-managed locales — a row per `(countryCode, languageCode)` pair,
+no `userId` (global, like surveys / email templates).
+
+- **Reference data** lives in `src/lib/locales.ts` (ISO 3166-1 alpha-2
+  for countries, ISO 639-1 for languages). The `COUNTRIES` array maps
+  each country to its official languages; `LANGUAGES` is the
+  human-readable name lookup. Both are static — extending the catalog
+  means editing the file and shipping it. `isValidCountryLanguage`
+  enforces that every DB row is drawn from this dataset.
+- **Default row** — one seeded row, `GB-en`, with `isDefault = true`.
+  `ensureDefaultLanguage` (`src/lib/languages.ts`) upserts it on every
+  page load and on `GET /api/super-admin/languages`, so a fresh DB
+  always shows English. The `DELETE` handler refuses any row where
+  `isDefault === true` — the codes themselves aren't special, only the
+  flag is. To change which `(country, language)` is the default, edit
+  `DEFAULT_LANGUAGE` in `src/lib/locales.ts`.
+- **Create flow** — the editor picks a country first; if the country
+  has exactly one official language the picker auto-selects it,
+  otherwise a second dropdown shows that country's languages only.
+  `createLanguageSchema` rejects pairs not in the dataset and
+  canonicalises case (`gb` → `GB`, `EN` → `en`).
+- **Uniqueness** — `@@unique([countryCode, languageCode])` means the
+  same locale can't be added twice. The POST handler maps Prisma's
+  `P2002` to a 409.
+
 ## Email templates (related)
 
 All transactional emails go through `src/lib/email.ts` and the templates in the `EmailTemplate` table. Each helper (`sendUserInvitationEmail`, `sendEmailVerificationEmail`, `sendPasswordResetEmail`, `sendEmailChangeConfirmation`) renders the admin-defined template for its key if one exists; otherwise it falls back to a built-in copy. No flow can break because of a missing template. The known keys + variables are listed in `KNOWN_TEMPLATES` (`src/lib/templates.ts`) and surfaced on `/super-admin/email-templates` so admins can see what they can override.

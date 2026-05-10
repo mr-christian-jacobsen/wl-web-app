@@ -231,3 +231,28 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }
+
+/// Admin-managed locale: a (country, language) pair drawn from the
+/// curated dataset in `src/lib/locales.ts` (ISO 3166-1 alpha-2 +
+/// ISO 639-1). Like `EmailTemplate` and `Survey` this is a global
+/// resource — no `userId`. Seeded with one row (`isDefault = true`)
+/// that may never be deleted; see `ensureDefaultLanguage` and the
+/// guard inside the DELETE handler.
+model Language {
+  id           String   @id @default(cuid())
+  /// ISO 3166-1 alpha-2, e.g. "GB", "US", "DK". Stored upper-case
+  /// because country codes are case-insensitive but conventionally
+  /// rendered upper. The DB-write normaliser only trims; case is
+  /// enforced by the Zod schema in `src/lib/validators.ts`.
+  countryCode  String
+  /// ISO 639-1 (or BCP-47 short tag for "fil"). Lower-case by
+  /// convention; same caveat about case as `countryCode`.
+  languageCode String
+  /// True for the seeded English/UK row. Used as the don't-delete
+  /// flag — the DELETE handler refuses any row where this is true.
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@unique([countryCode, languageCode])
+  @@index([countryCode])
+}
