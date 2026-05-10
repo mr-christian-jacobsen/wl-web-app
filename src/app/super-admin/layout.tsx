@@ -37,6 +37,12 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             Surveys
           </Link>
           <Link
+            href="/super-admin/languages"
+            className="rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Languages
+          </Link>
+          <Link
             href="/super-admin/email-templates"
             className="rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
           >

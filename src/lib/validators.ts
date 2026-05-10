@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { isValidCountryLanguage } from "@/lib/locales";
 import { STEP_TYPE_KEYS, parseOptions, stepTypeRequiresOptions } from "@/lib/step-types";
 
 export const emailSchema = z.string().trim().toLowerCase().email("Invalid email address");
@@ -282,3 +283,29 @@ export const submitResponseSchema = z.object({
 export type SubmitResponseInput = z.infer<typeof submitResponseSchema>;
 
 export { normalizeOptionsForType };
+
+/**
+ * `createLanguageSchema` accepts a `(countryCode, languageCode)` pair
+ * and rejects anything that isn't in the curated dataset
+ * (`src/lib/locales.ts`). Country codes are forced upper-case,
+ * languages lower-case, so DB rows stay canonical regardless of how
+ * the client casing arrives.
+ */
+export const createLanguageSchema = z
+  .object({
+    countryCode: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z]{2}$/, "Country code must be ISO 3166-1 alpha-2"),
+    languageCode: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z]{2,3}$/, "Language code must be ISO 639-1"),
+  })
+  .refine((d) => isValidCountryLanguage(d.countryCode, d.languageCode), {
+    message: "Language is not recognised for the chosen country",
+    path: ["languageCode"],
+  });
+export type CreateLanguageInput = z.infer<typeof createLanguageSchema>;
