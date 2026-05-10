@@ -96,6 +96,12 @@ export const templateKeySchema = z
 
 export const createEmailTemplateSchema = z.object({
   key: templateKeySchema,
+  /**
+   * Required — every template row belongs to a specific Language. The
+   * client picks one from the languages list rendered server-side; the
+   * server still validates the id exists in the DB before insert.
+   */
+  languageId: z.string().trim().min(1, "Language is required"),
   name: z.string().trim().min(1, "Name is required").max(120),
   subject: z.string().trim().min(1, "Subject is required").max(255),
   bodyText: z.string().min(1, "Plain-text body is required"),

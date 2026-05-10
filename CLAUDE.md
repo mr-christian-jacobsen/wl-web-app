@@ -114,6 +114,32 @@ All transactional emails go through `src/lib/email.ts` and the templates in the 
 
 When substituting variables into the HTML body, values are HTML-escaped (`escapeHtml`); subject and plain-text body are not.
 
+### Per-language template rows
+
+`EmailTemplate` is keyed on `(key, languageId)` — every row belongs
+to one specific Language and the same `key` may have multiple rows,
+one per locale. The runtime resolver `renderTemplateByKey(key, vars,
+languageId?)` (`src/lib/templates.server.ts`) walks:
+
+1. `(key, languageId)` if a language was requested.
+2. `(key, defaultLanguageId)` — always tried as the safety net; the
+   default id is read lazily via `getDefaultLanguageId`, which seeds
+   the row on first call.
+3. Returns null → `email.ts` renders the hardcoded fallback in
+   `KNOWN_TEMPLATES`.
+
+**The send pipeline currently never passes a `languageId`** — every
+call resolves to "default language → hardcoded". The wiring is in
+place so a future User language preference (or request locale) can
+plug into the third arg without touching call sites. Until then,
+non-default rows in `EmailTemplate` are admin prep-work only.
+
+The `EmailTemplate.language` relation is `onDelete: Restrict`; the
+`/api/super-admin/languages/[id]` DELETE handler additionally checks
+`_count.emailTemplates` and returns a 409 with a useful message
+before letting the FK fail. To delete a non-default language, remove
+its templates first.
+
 ## Scripts
 
 - `pnpm promote-admin <email>` — set `isSuperAdmin = true` on a user.

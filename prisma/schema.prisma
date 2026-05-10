@@ -169,9 +169,20 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+/// Admin-defined override of one transactional email per (key, language)
+/// pair. Keys are listed in `KNOWN_TEMPLATES` (`src/lib/templates.ts`);
+/// rendering falls through `(key, requestedLanguage) → (key, default) →
+/// hardcoded fallback` in `renderTemplateByKey`. The send pipeline
+/// currently always asks for the default language — once a runtime
+/// language source exists (User.language column, request locale, …),
+/// the third arg of `renderTemplateByKey` plugs straight in.
 model EmailTemplate {
   id          String   @id @default(cuid())
-  key         String   @unique
+  key         String
+  /// Language this row applies to. Required — every template row is
+  /// for some specific locale, including the seeded default.
+  languageId  String
+  language    Language @relation(fields: [languageId], references: [id], onDelete: Restrict)
   name        String
   subject     String
   bodyText    String
@@ -179,6 +190,9 @@ model EmailTemplate {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@unique([key, languageId])
+  @@index([languageId])
 }
 
 model EmailVerificationToken {
@@ -252,6 +266,8 @@ model Language {
   /// flag — the DELETE handler refuses any row where this is true.
   isDefault    Boolean  @default(false)
   createdAt    DateTime @default(now())
+
+  emailTemplates EmailTemplate[]
 
   @@unique([countryCode, languageCode])
   @@index([countryCode])

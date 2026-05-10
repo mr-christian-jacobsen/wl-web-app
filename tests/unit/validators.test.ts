@@ -83,6 +83,7 @@ describe("validators", () => {
   it("create-email-template enforces snake_case key + required fields", () => {
     const ok = createEmailTemplateSchema.safeParse({
       key: "user_invitation",
+      languageId: "lang-id-1",
       name: "User invitation",
       subject: "Welcome {{name}}",
       bodyText: "Hi {{name}}",
@@ -92,6 +93,7 @@ describe("validators", () => {
     expect(
       createEmailTemplateSchema.safeParse({
         key: "Bad-Key",
+        languageId: "lang-id-1",
         name: "x",
         subject: "y",
         bodyText: "z",
@@ -101,9 +103,20 @@ describe("validators", () => {
     expect(
       createEmailTemplateSchema.safeParse({
         key: "user_invitation",
+        languageId: "lang-id-1",
         name: "x",
         subject: "y",
         bodyText: "",
+      }).success,
+    ).toBe(false);
+
+    // languageId is required
+    expect(
+      createEmailTemplateSchema.safeParse({
+        key: "user_invitation",
+        name: "x",
+        subject: "y",
+        bodyText: "z",
       }).success,
     ).toBe(false);
   });

@@ -14,7 +14,11 @@ export async function DELETE(
 
   const existing = await prisma.language.findUnique({
     where: { id },
-    select: { id: true, isDefault: true },
+    select: {
+      id: true,
+      isDefault: true,
+      _count: { select: { emailTemplates: true } },
+    },
   });
   if (!existing) {
     return NextResponse.json({ error: "Language not found" }, { status: 404 });
@@ -23,6 +27,17 @@ export async function DELETE(
     return NextResponse.json(
       { error: "The default language cannot be deleted" },
       { status: 400 },
+    );
+  }
+  if (existing._count.emailTemplates > 0) {
+    // EmailTemplate.language has onDelete: Restrict, so the DB would refuse
+    // anyway — we check up front to surface a clear message instead of a
+    // Prisma constraint error.
+    return NextResponse.json(
+      {
+        error: `This language is still used by ${existing._count.emailTemplates} email template${existing._count.emailTemplates === 1 ? "" : "s"}. Delete those first.`,
+      },
+      { status: 409 },
     );
   }
 

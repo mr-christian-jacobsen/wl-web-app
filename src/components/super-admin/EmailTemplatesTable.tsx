@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { flagEmoji, formatLocaleLabel } from "@/lib/locales";
 import {
   KNOWN_TEMPLATES,
   type RenderedTemplate,
@@ -16,6 +17,7 @@ import {
 export type EmailTemplate = {
   id: string;
   key: string;
+  languageId: string;
   name: string;
   subject: string;
   bodyText: string;
@@ -25,9 +27,18 @@ export type EmailTemplate = {
   updatedAt: string;
 };
 
+export type LanguageRow = {
+  id: string;
+  countryCode: string;
+  languageCode: string;
+  isDefault: boolean;
+};
+
 type TemplatePrefill = {
   key: string;
   keyLocked: boolean;
+  languageId: string;
+  languageLocked: boolean;
   name: string;
   subject: string;
   bodyText: string;
@@ -42,6 +53,7 @@ type Mode =
 
 type PreviewState = {
   key: string;
+  languageId: string | null;
   source: "defined" | "fallback";
   rendered: RenderedTemplate;
 };
@@ -63,8 +75,12 @@ function renderDefinedTemplate(tpl: EmailTemplate, vars: TemplateVars): Rendered
 
 export function EmailTemplatesTable({
   initialTemplates,
+  languages,
+  defaultLanguageId,
 }: {
   initialTemplates: EmailTemplate[];
+  languages: LanguageRow[];
+  defaultLanguageId: string;
 }) {
   const router = useRouter();
   const [templates, setTemplates] = useState(initialTemplates);
@@ -73,22 +89,27 @@ export function EmailTemplatesTable({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const languagesById = useMemo(
+    () => new Map(languages.map((l) => [l.id, l])),
+    [languages],
+  );
+
   function refresh(next: EmailTemplate[]) {
     setTemplates(next);
     router.refresh();
   }
 
-  function definedFor(key: string): EmailTemplate | undefined {
-    return templates.find((t) => t.key === key);
+  function templatesForKey(key: string): EmailTemplate[] {
+    return templates.filter((t) => t.key === key);
   }
 
-  function openEditForKnown(key: string) {
+  function languagesWithoutTemplate(key: string): LanguageRow[] {
+    const definedLangs = new Set(templatesForKey(key).map((t) => t.languageId));
+    return languages.filter((l) => !definedLangs.has(l.id));
+  }
+
+  function openCreateForKnown(key: string, languageId: string) {
     setError(null);
-    const existing = definedFor(key);
-    if (existing) {
-      setMode({ kind: "edit", template: existing });
-      return;
-    }
     const known = KNOWN_TEMPLATES.find((t) => t.key === key);
     if (!known) return;
     setMode({
@@ -96,6 +117,8 @@ export function EmailTemplatesTable({
       prefill: {
         key: known.key,
         keyLocked: true,
+        languageId,
+        languageLocked: true,
         name: humanizeKey(known.key),
         subject: known.fallback.subject,
         bodyText: known.fallback.bodyText,
@@ -105,21 +128,61 @@ export function EmailTemplatesTable({
     });
   }
 
-  function openPreviewForKnown(key: string) {
+  function openCreateBlank() {
+    setError(null);
+    setMode({
+      kind: "create",
+      prefill: {
+        key: "",
+        keyLocked: false,
+        languageId: defaultLanguageId,
+        languageLocked: false,
+        name: "",
+        subject: "",
+        bodyText: "",
+        bodyHtml: "",
+        description: "",
+      },
+    });
+  }
+
+  function openPreviewForKnown(key: string, languageId: string | null) {
     const known = KNOWN_TEMPLATES.find((t) => t.key === key);
     if (!known) return;
     const vars = known.sampleVars as TemplateVars;
-    const existing = definedFor(key);
-    if (existing) {
-      setPreview({ key, source: "defined", rendered: renderDefinedTemplate(existing, vars) });
-      return;
+    if (languageId) {
+      const existing = templates.find((t) => t.key === key && t.languageId === languageId);
+      if (existing) {
+        setPreview({
+          key,
+          languageId,
+          source: "defined",
+          rendered: renderDefinedTemplate(existing, vars),
+        });
+        return;
+      }
     }
     const rendered = renderFallback(key, vars);
-    if (rendered) setPreview({ key, source: "fallback", rendered });
+    if (rendered) {
+      setPreview({ key, languageId: null, source: "fallback", rendered });
+    }
+  }
+
+  function openPreviewForRow(row: EmailTemplate) {
+    const known = KNOWN_TEMPLATES.find((t) => t.key === row.key);
+    const vars = (known?.sampleVars ?? {}) as TemplateVars;
+    setPreview({
+      key: row.key,
+      languageId: row.languageId,
+      source: "defined",
+      rendered: renderDefinedTemplate(row, vars),
+    });
   }
 
   async function onDelete(t: EmailTemplate) {
-    if (!confirm(`Delete template "${t.key}"? This cannot be undone.`)) return;
+    const lang = languagesById.get(t.languageId);
+    const label = lang ? formatLocaleLabel(lang.countryCode, lang.languageCode) : t.languageId;
+    if (!confirm(`Delete "${t.key}" (${label})? This cannot be undone.`)) return;
     setError(null);
     startTransition(async () => {
       const res = await fetch(`/api/super-admin/email-templates/${t.id}`, { method: "DELETE" });
@@ -143,52 +206,116 @@ export function EmailTemplatesTable({
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h2 className="text-base font-semibold">Templates the app uses</h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          These keys are referenced from code. Edit to override the built-in copy; preview to see
-          how it looks with sample data.
+          These keys are referenced from code. Each entry can have one row per language; the
+          send pipeline picks the requested language, falling back to the default and finally
+          the built-in copy.
         </p>
-        <ul className="mt-3 space-y-2 text-sm">
+        <ul className="mt-3 space-y-3 text-sm">
           {KNOWN_TEMPLATES.map((t) => {
-            const defined = !!definedFor(t.key);
+            const rows = templatesForKey(t.key);
+            const missing = languagesWithoutTemplate(t.key);
             return (
               <li
                 key={t.key}
-                className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 dark:border-slate-800 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+                className="rounded-md border border-slate-200 p-3 dark:border-slate-800"
               >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <code className="font-mono text-xs">{t.key}</code>
-                    <span
-                      className={
-                        "rounded px-1.5 py-0.5 text-xs " +
-                        (defined
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-                          : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200")
-                      }
-                    >
-                      {defined ? "customised" : "fallback"}
-                    </span>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <code className="font-mono text-xs">{t.key}</code>
+                      <span
+                        className={
+                          "rounded px-1.5 py-0.5 text-xs " +
+                          (rows.length > 0
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                            : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200")
+                        }
+                      >
+                        {rows.length === 0
+                          ? "fallback"
+                          : `${rows.length} language${rows.length === 1 ? "" : "s"}`}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-slate-600 dark:text-slate-400">{t.description}</p>
+                    <p className="mt-1 font-mono text-xs text-slate-500">
+                      vars: {t.variables.map((v) => `{{${v}}}`).join(", ")}
+                    </p>
                   </div>
-                  <p className="mt-1 text-slate-600 dark:text-slate-400">{t.description}</p>
-                  <p className="mt-1 font-mono text-xs text-slate-500">
-                    vars: {t.variables.map((v) => `{{${v}}}`).join(", ")}
-                  </p>
+                  <div className="flex shrink-0 gap-2 sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => openPreviewForKnown(t.key, null)}
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    >
+                      Preview fallback
+                    </button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 gap-2 sm:self-center">
-                  <button
-                    type="button"
-                    onClick={() => openPreviewForKnown(t.key)}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-                  >
-                    Preview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openEditForKnown(t.key)}
-                    className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
-                  >
-                    Edit
-                  </button>
-                </div>
+
+                {rows.length > 0 && (
+                  <ul className="mt-3 divide-y divide-slate-200 rounded-md border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                    {rows
+                      .slice()
+                      .sort((a, b) => sortByLanguage(a, b, languagesById))
+                      .map((row) => {
+                        const lang = languagesById.get(row.languageId);
+                        return (
+                          <li
+                            key={row.id}
+                            className="flex flex-wrap items-center gap-2 px-3 py-2"
+                          >
+                            <span className="text-base leading-none" aria-hidden>
+                              {lang ? flagEmoji(lang.countryCode) : "🌐"}
+                            </span>
+                            <span className="text-sm">
+                              {lang
+                                ? formatLocaleLabel(lang.countryCode, lang.languageCode)
+                                : row.languageId}
+                              {lang?.isDefault && (
+                                <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
+                                  Default
+                                </span>
+                              )}
+                            </span>
+                            <span className="ml-auto flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => openPreviewForRow(row)}
+                                className="rounded-md border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                              >
+                                Preview
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setError(null);
+                                  setMode({ kind: "edit", template: row });
+                                }}
+                                className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onDelete(row)}
+                                disabled={pending}
+                                className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                              >
+                                Delete
+                              </button>
+                            </span>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                )}
+
+                {missing.length > 0 && (
+                  <AddTranslationMenu
+                    options={missing}
+                    onPick={(languageId) => openCreateForKnown(t.key, languageId)}
+                  />
+                )}
               </li>
             );
           })}
@@ -203,10 +330,7 @@ export function EmailTemplatesTable({
       <div className="flex justify-end">
         <button
           type="button"
-          onClick={() => {
-            setError(null);
-            setMode({ kind: "create" });
-          }}
+          onClick={openCreateBlank}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
         >
           + New template
@@ -218,6 +342,7 @@ export function EmailTemplatesTable({
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
             <tr>
               <th className="px-4 py-3">Key</th>
+              <th className="px-4 py-3">Language</th>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Subject</th>
               <th className="px-4 py-3">Updated</th>
@@ -225,45 +350,58 @@ export function EmailTemplatesTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-            {templates.map((t) => (
-              <tr key={t.id}>
-                <td className="px-4 py-3 font-mono text-xs">{t.key}</td>
-                <td className="px-4 py-3">{t.name}</td>
-                <td className="px-4 py-3 max-w-xs truncate text-slate-600 dark:text-slate-300">
-                  {t.subject}
-                </td>
-                <td className="px-4 py-3 text-slate-500">
-                  {new Date(t.updatedAt).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setError(null);
-                        setMode({ kind: "edit", template: t });
-                      }}
-                      className="rounded-md border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDelete(t)}
-                      disabled={pending}
-                      className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {templates.map((t) => {
+              const lang = languagesById.get(t.languageId);
+              return (
+                <tr key={t.id}>
+                  <td className="px-4 py-3 font-mono text-xs">{t.key}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {lang ? (
+                      <>
+                        <span className="mr-1">{flagEmoji(lang.countryCode)}</span>
+                        {lang.countryCode}-{lang.languageCode}
+                      </>
+                    ) : (
+                      <span className="text-slate-400">{t.languageId}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">{t.name}</td>
+                  <td className="px-4 py-3 max-w-xs truncate text-slate-600 dark:text-slate-300">
+                    {t.subject}
+                  </td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {new Date(t.updatedAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null);
+                          setMode({ kind: "edit", template: t });
+                        }}
+                        className="rounded-md border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(t)}
+                        disabled={pending}
+                        className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {templates.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                  No customised templates yet. Click <em>Edit</em> on a row above to override
-                  one, or <em>+ New template</em> for an arbitrary key.
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                  No customised templates yet. Use <em>Add translation</em> above to override
+                  one for a specific language, or <em>+ New template</em> for an arbitrary key.
                 </td>
               </tr>
             )}
@@ -274,6 +412,8 @@ export function EmailTemplatesTable({
       {mode.kind !== "idle" && (
         <TemplateDialog
           mode={mode}
+          languages={languages}
+          languagesById={languagesById}
           onClose={() => setMode({ kind: "idle" })}
           onSaved={(saved, isCreate) => {
             if (isCreate) {
@@ -292,13 +432,77 @@ export function EmailTemplatesTable({
   );
 }
 
+function sortByLanguage(
+  a: EmailTemplate,
+  b: EmailTemplate,
+  byId: Map<string, LanguageRow>,
+): number {
+  const la = byId.get(a.languageId);
+  const lb = byId.get(b.languageId);
+  if (la?.isDefault !== lb?.isDefault) return la?.isDefault ? -1 : 1;
+  const ka = la ? `${la.countryCode}-${la.languageCode}` : a.languageId;
+  const kb = lb ? `${lb.countryCode}-${lb.languageCode}` : b.languageId;
+  return ka.localeCompare(kb);
+}
+
+function AddTranslationMenu({
+  options,
+  onPick,
+}: {
+  options: LanguageRow[];
+  onPick: (languageId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative mt-3 inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+      >
+        + Add translation
+      </button>
+      {open && (
+        <div className="absolute z-10 mt-1 max-h-72 w-64 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
+          <ul className="py-1 text-sm">
+            {options.map((l) => (
+              <li key={l.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onPick(l.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <span aria-hidden>{flagEmoji(l.countryCode)}</span>
+                  <span>{formatLocaleLabel(l.countryCode, l.languageCode)}</span>
+                  {l.isDefault && (
+                    <span className="ml-auto rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
+                      Default
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TemplateDialog({
   mode,
+  languages,
+  languagesById,
   onClose,
   onSaved,
   onError,
 }: {
   mode: Exclude<Mode, { kind: "idle" }>;
+  languages: LanguageRow[];
+  languagesById: Map<string, LanguageRow>;
   onClose: () => void;
   onSaved: (template: EmailTemplate, isCreate: boolean) => void;
   onError: (msg: string) => void;
@@ -307,8 +511,11 @@ function TemplateDialog({
   const initial = !isCreate ? mode.template : null;
   const prefill = isCreate ? mode.prefill ?? null : null;
   const keyLocked = !!prefill?.keyLocked;
+  const languageLocked = !isCreate || !!prefill?.languageLocked;
   const [pending, setPending] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const initialLanguageId = initial?.languageId ?? prefill?.languageId ?? "";
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -324,6 +531,9 @@ function TemplateDialog({
     };
     if (isCreate) {
       payload.key = keyLocked ? prefill!.key : String(fd.get("key") ?? "");
+      payload.languageId = languageLocked
+        ? prefill!.languageId
+        : String(fd.get("languageId") ?? "");
     }
 
     const url = isCreate
@@ -346,11 +556,16 @@ function TemplateDialog({
     onSaved(body.template, isCreate);
   }
 
+  const initialLang = languagesById.get(initialLanguageId);
+  const localeLabel = initialLang
+    ? formatLocaleLabel(initialLang.countryCode, initialLang.languageCode)
+    : null;
+
   const heading = isCreate
-    ? prefill
-      ? `Customise: ${prefill.key}`
+    ? prefill?.keyLocked
+      ? `Customise: ${prefill.key}${localeLabel ? ` — ${localeLabel}` : ""}`
       : "Create template"
-    : `Edit template: ${initial!.key}`;
+    : `Edit template: ${initial!.key}${localeLabel ? ` — ${localeLabel}` : ""}`;
 
   return (
     <div
@@ -395,6 +610,35 @@ function TemplateDialog({
             />
           </Field>
         )}
+
+        {isCreate && !languageLocked && (
+          <Field label="Language" htmlFor="languageId">
+            <select
+              id="languageId"
+              name="languageId"
+              required
+              defaultValue={initialLanguageId}
+              className={inputClass}
+            >
+              {languages.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {flagEmoji(l.countryCode)} {formatLocaleLabel(l.countryCode, l.languageCode)}
+                  {l.isDefault ? " — Default" : ""}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+        {!isCreate || languageLocked ? (
+          <Field label="Language" htmlFor="languageDisplay">
+            <input
+              id="languageDisplay"
+              defaultValue={localeLabel ?? initialLanguageId}
+              readOnly
+              className={inputClass + " cursor-not-allowed opacity-70"}
+            />
+          </Field>
+        ) : null}
 
         <Field label="Name" htmlFor="name">
           <input
@@ -461,7 +705,7 @@ function TemplateDialog({
             {pending
               ? "Saving…"
               : isCreate
-                ? prefill
+                ? prefill?.keyLocked
                   ? "Save customised template"
                   : "Create template"
                 : "Save changes"}
