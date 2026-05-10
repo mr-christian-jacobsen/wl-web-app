@@ -4,15 +4,33 @@ import { redirect } from "next/navigation";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { ensureDefaultLanguage } from "@/lib/languages";
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, email: true, name: true, avatarUrl: true, isSuperAdmin: true },
-  });
+  // Make sure the default language exists so the picker always has at
+  // least one option, even on a brand-new database.
+  await ensureDefaultLanguage();
+
+  const [user, languages] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatarUrl: true,
+        isSuperAdmin: true,
+        languageId: true,
+      },
+    }),
+    prisma.language.findMany({
+      orderBy: [{ isDefault: "desc" }, { countryCode: "asc" }, { languageCode: "asc" }],
+      select: { id: true, countryCode: true, languageCode: true, isDefault: true },
+    }),
+  ]);
   if (!user) redirect("/login");
 
   return (
@@ -21,7 +39,7 @@ export default async function ProfilePage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Your profile</h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Update your name, email, password, and avatar.
+            Update your name, email, password, language, and avatar.
           </p>
         </div>
         {user.isSuperAdmin && (
@@ -33,7 +51,7 @@ export default async function ProfilePage() {
           </Link>
         )}
       </header>
-      <ProfileEditor user={user} />
+      <ProfileEditor user={user} languages={languages} />
     </section>
   );
 }

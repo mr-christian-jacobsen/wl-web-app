@@ -6,12 +6,21 @@ import { useRef, useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
 import { AvatarCropper } from "@/components/profile/AvatarCropper";
+import { flagEmoji, formatLocaleLabel } from "@/lib/locales";
 
 type User = {
   id: string;
   email: string;
   name: string;
   avatarUrl: string | null;
+  languageId: string | null;
+};
+
+export type LanguageOption = {
+  id: string;
+  countryCode: string;
+  languageCode: string;
+  isDefault: boolean;
 };
 
 type Status = { kind: "idle" } | { kind: "ok"; msg: string } | { kind: "err"; msg: string };
@@ -51,7 +60,13 @@ function StatusLine({ status }: { status: Status }) {
   );
 }
 
-export function ProfileEditor({ user }: { user: User }) {
+export function ProfileEditor({
+  user,
+  languages,
+}: {
+  user: User;
+  languages: LanguageOption[];
+}) {
   const router = useRouter();
   const { update } = useSession();
 
@@ -65,6 +80,7 @@ export function ProfileEditor({ user }: { user: User }) {
           router.refresh();
         }}
       />
+      <LanguageSection user={user} languages={languages} onUpdated={() => router.refresh()} />
       <PasswordSection />
       <Section title="Sign out">
         <button
@@ -260,6 +276,89 @@ function DetailsSection({
         <div className="sm:col-span-2">
           <button type="submit" disabled={pending} className={buttonClass}>
             {pending ? "Saving…" : "Save changes"}
+          </button>
+          <StatusLine status={status} />
+        </div>
+      </form>
+    </Section>
+  );
+}
+
+function LanguageSection({
+  user,
+  languages,
+  onUpdated,
+}: {
+  user: User;
+  languages: LanguageOption[];
+  onUpdated: () => void;
+}) {
+  // Empty string in the <select> represents "no preference" → null in
+  // the JSON body, which the API translates into clearing the column so
+  // the user follows the system default.
+  const [value, setValue] = useState<string>(user.languageId ?? "");
+  const [pending, setPending] = useState(false);
+  const [status, setStatus] = useState<Status>({ kind: "idle" });
+
+  const defaultLang = languages.find((l) => l.isDefault) ?? null;
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPending(true);
+    setStatus({ kind: "idle" });
+    const next = value === "" ? null : value;
+    if (next === user.languageId) {
+      setStatus({ kind: "err", msg: "Nothing to update" });
+      setPending(false);
+      return;
+    }
+    const res = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ languageId: next }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      setStatus({ kind: "err", msg: body?.error ?? "Update failed" });
+      setPending(false);
+      return;
+    }
+    setStatus({ kind: "ok", msg: "Language preference saved" });
+    setPending(false);
+    onUpdated();
+  }
+
+  return (
+    <Section
+      title="Language"
+      description="The language we use for emails and other notifications. Choose a specific language, or leave it blank to follow the site default."
+    >
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <Field label="Preferred language" htmlFor="languageId">
+          <select
+            id="languageId"
+            name="languageId"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">
+              Site default
+              {defaultLang
+                ? ` — ${formatLocaleLabel(defaultLang.countryCode, defaultLang.languageCode)}`
+                : ""}
+            </option>
+            {languages.map((l) => (
+              <option key={l.id} value={l.id}>
+                {flagEmoji(l.countryCode)} {formatLocaleLabel(l.countryCode, l.languageCode)}
+                {l.isDefault ? " — Default" : ""}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <div>
+          <button type="submit" disabled={pending} className={buttonClass}>
+            {pending ? "Saving…" : "Save language"}
           </button>
           <StatusLine status={status} />
         </div>

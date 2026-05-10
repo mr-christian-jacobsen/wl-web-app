@@ -186,6 +186,25 @@ export async function resendEmail(id: string) {
 }
 
 /**
+ * Resolve the language id to use for a send. Precedence:
+ *   1. `ctx.languageId` if the caller passed one explicitly.
+ *   2. `User.languageId` if `ctx.userId` points at an existing row.
+ *   3. `undefined` — the resolver then falls back to the system default.
+ */
+async function resolveLanguageId(ctx: {
+  userId?: string | null;
+  languageId?: string | null;
+}): Promise<string | undefined> {
+  if (ctx.languageId) return ctx.languageId;
+  if (!ctx.userId) return undefined;
+  const u = await prisma.user.findUnique({
+    where: { id: ctx.userId },
+    select: { languageId: true },
+  });
+  return u?.languageId ?? undefined;
+}
+
+/**
  * Render via the named admin-defined template; if none exists, render the
  * registry fallback. Both paths produce the same shape, so callers don't pass
  * fallback copy — it lives in `KNOWN_TEMPLATES`.
@@ -194,9 +213,10 @@ async function sendWithTemplateOrFallback(
   type: EmailType,
   to: string,
   vars: TemplateVars,
-  ctx: { userId?: string | null },
+  ctx: { userId?: string | null; languageId?: string | null },
 ) {
-  const fromDb = await renderTemplateByKey(type, vars);
+  const languageId = await resolveLanguageId(ctx);
+  const fromDb = await renderTemplateByKey(type, vars, languageId);
   if (fromDb) {
     await send({
       to,
@@ -227,7 +247,12 @@ async function sendWithTemplateOrFallback(
 
 export async function sendUserInvitationEmail(
   to: string,
-  opts: { name: string; password: string; userId?: string | null },
+  opts: {
+    name: string;
+    password: string;
+    userId?: string | null;
+    languageId?: string | null;
+  },
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   const loginUrl = `${appUrl}/login`;
@@ -241,7 +266,7 @@ export async function sendUserInvitationEmail(
       appUrl,
       loginUrl,
     },
-    { userId: opts.userId },
+    { userId: opts.userId, languageId: opts.languageId },
   );
 }
 
@@ -255,7 +280,7 @@ export const EMAIL_CHANGE_TTL_MS = EMAIL_CHANGE_TTL_MINUTES * 60_000;
 export async function sendEmailVerificationEmail(
   to: string,
   verifyUrl: string,
-  opts: { name?: string; userId?: string | null } = {},
+  opts: { name?: string; userId?: string | null; languageId?: string | null } = {},
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   await sendWithTemplateOrFallback(
@@ -268,14 +293,14 @@ export async function sendEmailVerificationEmail(
       appUrl,
       ttlMinutes: VERIFICATION_TTL_MINUTES,
     },
-    { userId: opts.userId },
+    { userId: opts.userId, languageId: opts.languageId },
   );
 }
 
 export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string,
-  opts: { name?: string; userId?: string | null } = {},
+  opts: { name?: string; userId?: string | null; languageId?: string | null } = {},
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   await sendWithTemplateOrFallback(
@@ -288,14 +313,19 @@ export async function sendPasswordResetEmail(
       appUrl,
       ttlMinutes: RESET_TTL_MINUTES,
     },
-    { userId: opts.userId },
+    { userId: opts.userId, languageId: opts.languageId },
   );
 }
 
 export async function sendEmailChangeConfirmation(
   to: string,
   confirmUrl: string,
-  opts: { name?: string; oldEmail: string; userId?: string | null },
+  opts: {
+    name?: string;
+    oldEmail: string;
+    userId?: string | null;
+    languageId?: string | null;
+  },
 ) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   await sendWithTemplateOrFallback(
@@ -309,6 +339,6 @@ export async function sendEmailChangeConfirmation(
       appUrl,
       ttlMinutes: EMAIL_CHANGE_TTL_MINUTES,
     },
-    { userId: opts.userId },
+    { userId: opts.userId, languageId: opts.languageId },
   );
 }

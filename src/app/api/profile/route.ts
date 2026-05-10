@@ -22,22 +22,49 @@ export async function PATCH(req: Request) {
 
   const me = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, languageId: true },
   });
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const wantsEmailChange =
     parsed.data.email !== undefined && parsed.data.email !== me.email;
 
-  // Apply non-email changes immediately (just `name` for now).
+  // If a non-null languageId was supplied, make sure it's a real row before
+  // saving — keeps invalid foreign keys out of the table.
+  if (typeof parsed.data.languageId === "string") {
+    const exists = await prisma.language.findUnique({
+      where: { id: parsed.data.languageId },
+      select: { id: true },
+    });
+    if (!exists) {
+      return NextResponse.json({ error: "Unknown language" }, { status: 400 });
+    }
+  }
+
+  // Apply non-email changes immediately (`name` and `languageId`).
   let updatedName: string | undefined;
+  let updatedLanguageId: string | null | undefined;
+  const directUpdate: Prisma.UserUpdateInput = {};
   if (parsed.data.name !== undefined && parsed.data.name !== me.name) {
+    directUpdate.name = parsed.data.name;
+  }
+  if (parsed.data.languageId !== undefined && parsed.data.languageId !== me.languageId) {
+    // Prisma exposes the FK via the `language` relation; set it with
+    // connect for an explicit choice and disconnect to clear back to
+    // "follow the default".
+    directUpdate.language =
+      parsed.data.languageId === null
+        ? { disconnect: true }
+        : { connect: { id: parsed.data.languageId } };
+  }
+  if (Object.keys(directUpdate).length > 0) {
     const updated = await prisma.user.update({
       where: { id: me.id },
-      data: { name: parsed.data.name },
-      select: { name: true },
+      data: directUpdate,
+      select: { name: true, languageId: true },
     });
     updatedName = updated.name;
+    updatedLanguageId = updated.languageId;
   }
 
   // Email change requires confirmation via the new address.
@@ -94,6 +121,7 @@ export async function PATCH(req: Request) {
       id: me.id,
       email: me.email, // unchanged until they confirm
       name: updatedName ?? me.name,
+      languageId: updatedLanguageId !== undefined ? updatedLanguageId : me.languageId,
     },
     pendingEmailChange: pendingEmail
       ? { newEmail: pendingEmail, message: `We sent a confirmation link to ${pendingEmail}.` }

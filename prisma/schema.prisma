@@ -23,6 +23,14 @@ model User {
   avatarMime      String?
   isSuperAdmin    Boolean   @default(false)
   emailVerifiedAt DateTime?
+  /// Preferred language for emails and other user-facing content. Null
+  /// means "follow the system default" — the email pipeline resolves
+  /// templates via `(key, user.languageId ?? defaultId) → (key, defaultId)
+  /// → hardcoded fallback`. Languages are managed in
+  /// `/super-admin/languages`; deleting one nulls this column rather than
+  /// the user row.
+  languageId      String?
+  language        Language? @relation(fields: [languageId], references: [id], onDelete: SetNull)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -30,6 +38,8 @@ model User {
   verificationTokens EmailVerificationToken[]
   usageSessions      UsageSession[]
   emails             Email[]
+
+  @@index([languageId])
 }
 
 /// Admin-defined ordered survey. Steps live in a separate table so they
@@ -268,6 +278,7 @@ model Language {
   createdAt    DateTime @default(now())
 
   emailTemplates EmailTemplate[]
+  users          User[]
 
   @@unique([countryCode, languageCode])
   @@index([countryCode])

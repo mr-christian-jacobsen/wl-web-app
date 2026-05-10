@@ -49,6 +49,12 @@ describe("validators", () => {
 
   it("update-profile requires at least one field", () => {
     expect(updateProfileSchema.safeParse({ name: "foo" }).success).toBe(true);
+    expect(updateProfileSchema.safeParse({ languageId: "x" }).success).toBe(true);
+    // null clears the preference
+    expect(updateProfileSchema.safeParse({ languageId: null }).success).toBe(true);
+    // empty string is rejected so empty form fields can't accidentally
+    // null the preference — clients must explicitly send `null`.
+    expect(updateProfileSchema.safeParse({ languageId: "" }).success).toBe(false);
     expect(updateProfileSchema.safeParse({}).success).toBe(false);
   });
 

@@ -128,17 +128,29 @@ languageId?)` (`src/lib/templates.server.ts`) walks:
 3. Returns null → `email.ts` renders the hardcoded fallback in
    `KNOWN_TEMPLATES`.
 
-**The send pipeline currently never passes a `languageId`** — every
-call resolves to "default language → hardcoded". The wiring is in
-place so a future User language preference (or request locale) can
-plug into the third arg without touching call sites. Until then,
-non-default rows in `EmailTemplate` are admin prep-work only.
+### Per-user language preference
+
+`User.languageId` is a nullable FK to `Language` set from
+`/profile` (Language section). When an email helper is called with
+`{ userId }` but no explicit `languageId`, `resolveLanguageId` in
+`src/lib/email.ts` looks up the user's preference and threads it into
+the template resolver — so a Danish user with `(password_reset, DK-da)`
+defined will receive the Danish copy automatically while every other
+user falls through to default. Callers can override by passing
+`languageId` in the helper opts (useful when the user record doesn't
+exist yet, e.g. some invitation flows).
+
+`onDelete: SetNull` on the relation means deleting a non-default
+language nulls the column on any user that had picked it; the user
+keeps working and falls back to default.
 
 The `EmailTemplate.language` relation is `onDelete: Restrict`; the
 `/api/super-admin/languages/[id]` DELETE handler additionally checks
 `_count.emailTemplates` and returns a 409 with a useful message
 before letting the FK fail. To delete a non-default language, remove
-its templates first.
+its templates first. (The `User.language` relation is
+`onDelete: SetNull` — users with that preference simply revert to
+the default.)
 
 ## Scripts
 

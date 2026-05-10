@@ -46,14 +46,30 @@ export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export const resendVerificationSchema = z.object({ email: emailSchema });
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
 
+/**
+ * `languageId` accepts:
+ *   - a non-empty string → set the user's preferred language
+ *   - `null` → clear the preference (use the system default)
+ *   - `undefined` (i.e. omitted) → leave the column untouched
+ *
+ * The route handler tells these three apart with `'languageId' in data`
+ * + `data.languageId` value. Server validates that the id exists in the
+ * Language table.
+ */
 export const updateProfileSchema = z
   .object({
     name: nameSchema.optional(),
     email: emailSchema.optional(),
+    languageId: z
+      .union([z.string().trim().min(1), z.null()])
+      .optional(),
   })
-  .refine((d) => d.name !== undefined || d.email !== undefined, {
-    message: "Provide at least one field to update",
-  });
+  .refine(
+    (d) => d.name !== undefined || d.email !== undefined || d.languageId !== undefined,
+    {
+      message: "Provide at least one field to update",
+    },
+  );
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 export const changePasswordSchema = z
