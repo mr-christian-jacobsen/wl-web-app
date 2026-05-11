@@ -3,7 +3,9 @@ import type { Metadata, Viewport } from "next";
 import { AppSessionProvider } from "@/components/SessionProvider";
 import { ErrorReporter } from "@/components/ErrorReporter";
 import { ThemeWatcher } from "@/components/ThemeWatcher";
+import { TranslationsProvider } from "@/components/TranslationsProvider";
 import { auth } from "@/lib/auth";
+import { getServerTranslations } from "@/lib/translations.server";
 
 import "./globals.css";
 
@@ -46,6 +48,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const htmlClass = htmlClassFor(preference);
   const bootScript = buildThemeBootScript(preference);
 
+  // Resolve the user's preferred language and load the translation
+  // dict. The helper wraps both queries in React `cache`, so any
+  // downstream server component that calls `getServerTranslations` or
+  // `getServerT` in the same render shares the result for free.
+  const translations = await getServerTranslations();
+
   return (
     <html lang="en" className={htmlClass} suppressHydrationWarning>
       <body>
@@ -57,11 +65,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <script dangerouslySetInnerHTML={{ __html: bootScript }} />
         )}
         <AppSessionProvider>
-          <ThemeWatcher preference={preference} />
-          <ErrorReporter />
-          <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-8 sm:px-6 lg:px-8">
-            {children}
-          </main>
+          <TranslationsProvider dict={translations}>
+            <ThemeWatcher preference={preference} />
+            <ErrorReporter />
+            <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-8 sm:px-6 lg:px-8">
+              {children}
+            </main>
+          </TranslationsProvider>
         </AppSessionProvider>
       </body>
     </html>

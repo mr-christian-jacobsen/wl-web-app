@@ -9,7 +9,19 @@
 import type { Instrumentation } from "next";
 
 export async function register() {
-  // Nothing to initialize — logger is lazy-loaded on first error.
+  // Reflect the in-code translation registry into the DB so adding a
+  // string in code automatically surfaces it in /super-admin/translations
+  // on the next boot — no separate seed step or migration needed.
+  //
+  // Skipped on the edge runtime (no Prisma) and behind a try/catch so a
+  // boot-time DB issue can't kill the whole process.
+  if (process.env.NEXT_RUNTIME === "edge") return;
+  try {
+    const { syncTranslationKeys } = await import("@/lib/translations.server");
+    await syncTranslationKeys();
+  } catch (err) {
+    console.error("[translations] sync at boot failed", err);
+  }
 }
 
 export const onRequestError: Instrumentation.onRequestError = async (

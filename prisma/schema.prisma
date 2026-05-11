@@ -286,9 +286,56 @@ model Language {
 
   emailTemplates EmailTemplate[]
   users          User[]
+  translations   Translation[]
 
   @@unique([countryCode, languageCode])
   @@index([countryCode])
+}
+
+/// One translatable user-facing string. The `key` is the stable
+/// identifier referenced from code via `t("key")`; `name` and
+/// `description` are admin-facing labels shown on
+/// `/super-admin/translations` so the admin can tell where the string
+/// is used without reading source. Source of truth for which keys
+/// exist lives in `src/lib/translations.ts` (`KNOWN_TRANSLATIONS`);
+/// rows here are upserted from that registry on boot via
+/// `syncTranslationKeys` so adding a string in code automatically
+/// surfaces it in the admin UI for every language.
+model TranslationKey {
+  id          String        @id @default(cuid())
+  /// Dot-separated lowercase identifier, e.g. "profile.title" or
+  /// "auth.login.button.submit". Enforced by the Zod schema in
+  /// `src/lib/validators.ts`.
+  key         String        @unique
+  /// Short human-readable label, e.g. "Profile page title".
+  name        String
+  /// Optional longer hint about where the string appears.
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  values Translation[]
+
+  @@index([key])
+}
+
+/// One translated value for a (`translationKey`, `language`) pair.
+/// Edits update existing rows; missing rows fall through to the
+/// default-language value, which falls through to the key string
+/// itself, so a deploy with new keys never shows a blank UI.
+model Translation {
+  id               String   @id @default(cuid())
+  translationKeyId String
+  languageId       String
+  value            String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  translationKey TranslationKey @relation(fields: [translationKeyId], references: [id], onDelete: Cascade)
+  language       Language       @relation(fields: [languageId], references: [id], onDelete: Restrict)
+
+  @@unique([translationKeyId, languageId])
+  @@index([languageId])
 }
 
 /// Append-only log of runtime errors, warnings and explicit info events.

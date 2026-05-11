@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { useTranslation } from "@/components/TranslationsProvider";
 
 type ResendState = "idle" | "sending" | "sent";
 
@@ -20,6 +21,7 @@ function safeRedirect(target: string | null | undefined): string {
 }
 
 export function LoginForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useSearchParams();
   const [pending, setPending] = useState(false);
@@ -40,7 +42,7 @@ export function LoginForm() {
       password: data.password,
     });
     if (!res || res.error) {
-      setError("Invalid email or password");
+      setError(t("auth.login.error.invalid"));
       setPending(false);
       return;
     }
@@ -62,17 +64,31 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <Field label="Email" htmlFor="email">
-        <input id="email" name="email" type="email" autoComplete="email" required className={inputClass} />
+      <Field label={t("auth.login.field.email")} htmlFor="email">
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          className={inputClass}
+        />
       </Field>
-      <Field label="Password" htmlFor="password">
-        <input id="password" name="password" type="password" autoComplete="current-password" required className={inputClass} />
+      <Field label={t("auth.login.field.password")} htmlFor="password">
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          className={inputClass}
+        />
       </Field>
       {error && (
         <div className="flex flex-col gap-1">
           <p className="text-sm text-red-600">{error}</p>
           <p className="text-xs text-slate-500">
-            Just signed up? You may need to confirm your email first.{" "}
+            {t("auth.login.verify_prompt")}{" "}
             <button
               type="button"
               onClick={onResendVerification}
@@ -80,16 +96,16 @@ export function LoginForm() {
               className="font-medium text-slate-700 underline disabled:opacity-60 dark:text-slate-300"
             >
               {resendState === "sent"
-                ? "Confirmation sent — check your inbox."
+                ? t("auth.login.resend.sent")
                 : resendState === "sending"
-                  ? "Sending…"
-                  : "Resend confirmation email"}
+                  ? t("auth.login.resend.sending")
+                  : t("auth.login.resend.idle")}
             </button>
           </p>
         </div>
       )}
       <button type="submit" disabled={pending} className={buttonClass}>
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? t("auth.login.submit_pending") : t("auth.login.submit")}
       </button>
     </form>
   );

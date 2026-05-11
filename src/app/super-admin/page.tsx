@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import { prisma } from "@/lib/db";
+import { getServerT } from "@/lib/translations.server";
 
 export default async function SuperAdminLanding() {
   const since24h = new Date(Date.now() - 24 * 60 * 60_000);
+  const t = await getServerT();
   const [totalUsers, superAdmins, templates, sessions24h, emails24h, errors24h] =
     await Promise.all([
       prisma.user.count(),
@@ -24,22 +26,22 @@ export default async function SuperAdminLanding() {
   return (
     <section className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Stat label="Total users" value={totalUsers} />
-        <Stat label="Super admins" value={superAdmins} />
-        <Stat label="Email templates" value={templates} />
-        <Stat label="Sessions (24h)" value={sessions24h} />
-        <Stat label="Emails (24h)" value={emails24h} />
-        <Stat label="Errors (24h)" value={errors24h} />
+        <Stat label={t("super_admin.overview.stat.total_users")} value={totalUsers} />
+        <Stat label={t("super_admin.overview.stat.super_admins")} value={superAdmins} />
+        <Stat label={t("super_admin.overview.stat.email_templates")} value={templates} />
+        <Stat label={t("super_admin.overview.stat.sessions_24h")} value={sessions24h} />
+        <Stat label={t("super_admin.overview.stat.emails_24h")} value={emails24h} />
+        <Stat label={t("super_admin.overview.stat.errors_24h")} value={errors24h} />
       </div>
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold">Quick links</h2>
+        <h2 className="text-lg font-semibold">{t("super_admin.overview.quick_links.title")}</h2>
         <ul className="mt-3 space-y-2 text-sm">
           <li>
             <Link
               href="/super-admin/users"
               className="font-medium text-slate-900 underline dark:text-slate-100"
             >
-              Manage users →
+              {t("super_admin.overview.quick_links.manage_users")}
             </Link>
           </li>
           <li>
@@ -47,7 +49,7 @@ export default async function SuperAdminLanding() {
               href="/super-admin/email-templates"
               className="font-medium text-slate-900 underline dark:text-slate-100"
             >
-              Manage email templates →
+              {t("super_admin.overview.quick_links.manage_email_templates")}
             </Link>
           </li>
         </ul>
