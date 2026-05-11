@@ -24,6 +24,7 @@ import { useState } from "react";
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
 import { StepTypeIcon } from "@/components/super-admin/StepTypeIcon";
 import { StepTypePicker } from "@/components/super-admin/StepTypePicker";
+import { useTranslation } from "@/components/TranslationsProvider";
 import {
   DEFAULT_STEP_TYPE_KEY,
   getStepType,
@@ -53,6 +54,7 @@ type Survey = {
 type Status = { kind: "idle" } | { kind: "ok"; msg: string } | { kind: "err"; msg: string };
 
 export function SurveyEditor({ survey }: { survey: Survey }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [name, setName] = useState(survey.name);
   const [description, setDescription] = useState(survey.description ?? "");
@@ -78,11 +80,14 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      setDetailsStatus({ kind: "err", msg: body?.error ?? "Could not save" });
+      setDetailsStatus({
+        kind: "err",
+        msg: body?.error ?? t("super_admin.survey_editor.save_failed"),
+      });
       setDetailsPending(false);
       return;
     }
-    setDetailsStatus({ kind: "ok", msg: "Saved" });
+    setDetailsStatus({ kind: "ok", msg: t("super_admin.survey_editor.saved") });
     setDetailsPending(false);
     router.refresh();
   }
@@ -98,7 +103,7 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
     setPublishPending(false);
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      alert(body?.error ?? "Could not update publish state");
+      alert(body?.error ?? t("super_admin.survey_editor.publish_failed"));
       return;
     }
     setPublished(next);
@@ -106,11 +111,11 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
   }
 
   async function deleteSurvey() {
-    if (!confirm(`Delete "${survey.name}" and all its steps?`)) return;
+    if (!confirm(t("super_admin.survey_editor.delete_confirm", { name: survey.name }))) return;
     const res = await fetch(`/api/super-admin/surveys/${survey.id}`, { method: "DELETE" });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      alert(body?.error ?? "Could not delete survey");
+      alert(body?.error ?? t("super_admin.survey_editor.delete_failed"));
       return;
     }
     router.push("/super-admin/surveys");
@@ -140,7 +145,7 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
     if (!res.ok) {
       setSteps(steps);
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      alert(body?.error ?? "Could not reorder steps");
+      alert(body?.error ?? t("super_admin.survey_editor.step.reorder_failed"));
     }
   }
 
@@ -175,7 +180,9 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
         className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold">Survey details</h2>
+          <h2 className="text-lg font-semibold">
+            {t("super_admin.survey_editor.section_details")}
+          </h2>
           <PublishStatus
             published={published}
             publishedAt={survey.publishedAt}
@@ -184,7 +191,7 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
           />
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Name" htmlFor="survey-name">
+          <Field label={t("super_admin.survey_editor.field.name")} htmlFor="survey-name">
             <input
               id="survey-name"
               value={name}
@@ -194,7 +201,10 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
               className={inputClass}
             />
           </Field>
-          <Field label="Description" htmlFor="survey-description">
+          <Field
+            label={t("super_admin.survey_editor.field.description")}
+            htmlFor="survey-description"
+          >
             <textarea
               id="survey-description"
               value={description}
@@ -207,7 +217,9 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button type="submit" disabled={detailsPending} className={buttonClass + " sm:w-auto"}>
-            {detailsPending ? "Saving…" : "Save survey"}
+            {detailsPending
+              ? t("admin.action.saving")
+              : t("super_admin.survey_editor.save_survey")}
           </button>
           <Link
             href={previewUrl}
@@ -215,7 +227,7 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
             rel="noreferrer"
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
           >
-            Preview survey ↗
+            {t("super_admin.survey_editor.preview_survey")}
           </Link>
           {published && (
             <Link
@@ -224,7 +236,7 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
               rel="noreferrer"
               className="rounded-md border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-950"
             >
-              Public link ↗
+              {t("super_admin.survey_editor.public_link")}
             </Link>
           )}
           {published && (
@@ -237,7 +249,7 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
             onClick={deleteSurvey}
             className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
           >
-            Delete survey
+            {t("super_admin.survey_editor.delete")}
           </button>
           {detailsStatus.kind !== "idle" && (
             <span
@@ -254,10 +266,11 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
       </form>
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold">Steps</h2>
+        <h2 className="text-lg font-semibold">
+          {t("super_admin.survey_editor.steps_section")}
+        </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Drag the handle to reorder, or use the up/down arrows. Click a tile to change a step&apos;s
-          type.
+          {t("super_admin.survey_editor.steps_description")}
         </p>
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -281,7 +294,7 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
 
         {steps.length === 0 && (
           <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
-            No steps yet — pick a type below to add the first one.
+            {t("super_admin.survey_editor.steps_empty")}
           </div>
         )}
 
@@ -304,6 +317,7 @@ function PublishStatus({
   onToggle: () => void;
   pending: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2">
       <span
@@ -314,11 +328,15 @@ function PublishStatus({
             : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200")
         }
       >
-        {published ? "Live" : "Draft"}
+        {published
+          ? t("super_admin.surveys.status.live")
+          : t("super_admin.surveys.status.draft")}
       </span>
       {published && publishedAt && (
         <span className="text-xs text-slate-500">
-          since {new Date(publishedAt).toLocaleDateString()}
+          {t("super_admin.survey_editor.publish_since", {
+            date: new Date(publishedAt).toLocaleDateString(),
+          })}
         </span>
       )}
       <button
@@ -327,7 +345,11 @@ function PublishStatus({
         disabled={pending}
         className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
       >
-        {pending ? "…" : published ? "Unpublish" : "Publish"}
+        {pending
+          ? "…"
+          : published
+            ? t("super_admin.survey_editor.unpublish")
+            : t("super_admin.survey_editor.publish")}
       </button>
     </div>
   );
@@ -370,18 +392,20 @@ function StepRow({
   dragAttributes?: React.HTMLAttributes<HTMLButtonElement>;
   dragListeners?: React.HTMLAttributes<HTMLButtonElement>;
 }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const type = getStepType(step.type);
   const optionList = parseOptions(step.options);
 
   async function onDelete() {
-    if (!confirm(`Delete step "${step.title}"?`)) return;
+    if (!confirm(t("super_admin.survey_editor.step.delete_confirm", { title: step.title })))
+      return;
     const res = await fetch(`/api/super-admin/surveys/${surveyId}/steps/${step.id}`, {
       method: "DELETE",
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      alert(body?.error ?? "Could not delete step");
+      alert(body?.error ?? t("super_admin.survey_editor.step.delete_failed"));
       return;
     }
     onDeleted(step.id);

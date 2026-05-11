@@ -1,11 +1,13 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureDefaultLanguage } from "@/lib/languages";
+import { getServerT } from "@/lib/translations.server";
 
 import { UsersTable } from "@/components/super-admin/UsersTable";
 
 export default async function SuperAdminUsersPage() {
   const session = await auth();
+  const t = await getServerT();
 
   // Languages are needed by the create/edit dialog picker; seed the
   // default so a fresh DB always has at least one option.
@@ -32,8 +34,10 @@ export default async function SuperAdminUsersPage() {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Users</h2>
-        <p className="text-sm text-slate-500">{users.length} total</p>
+        <h2 className="text-lg font-semibold">{t("super_admin.users.title")}</h2>
+        <p className="text-sm text-slate-500">
+          {t("super_admin.users.total", { n: users.length })}
+        </p>
       </div>
       <UsersTable
         initialUsers={users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() }))}

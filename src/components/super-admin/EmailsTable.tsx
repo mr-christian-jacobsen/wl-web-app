@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useTranslation } from "@/components/TranslationsProvider";
+
 export type EmailRow = {
   id: string;
   to: string;
@@ -16,13 +18,6 @@ export type EmailRow = {
   /** Pre-formatted on the server to avoid locale-dependent hydration mismatch. */
   sentAtDisplay: string;
   user: { id: string; email: string } | null;
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  user_invitation: "User invitation",
-  email_verification: "Email verification",
-  password_reset: "Password reset",
-  email_change_confirmation: "Email change",
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -42,6 +37,7 @@ type ResendResult = {
 };
 
 export function EmailsTable({ emails: initialEmails }: { emails: EmailRow[] }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [emails, setEmails] = useState(initialEmails);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -69,11 +65,11 @@ export function EmailsTable({ emails: initialEmails }: { emails: EmailRow[] }) {
         <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
             <tr>
-              <th className="px-4 py-3">Time</th>
-              <th className="px-4 py-3">To</th>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3">Subject</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">{t("super_admin.emails.col.time")}</th>
+              <th className="px-4 py-3">{t("super_admin.emails.col.to")}</th>
+              <th className="px-4 py-3">{t("super_admin.emails.col.type")}</th>
+              <th className="px-4 py-3">{t("super_admin.emails.col.subject")}</th>
+              <th className="px-4 py-3">{t("super_admin.emails.col.status")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -89,16 +85,18 @@ export function EmailsTable({ emails: initialEmails }: { emails: EmailRow[] }) {
                 <td className="px-4 py-3">
                   <div>{e.to}</div>
                   {e.user && e.user.email !== e.to && (
-                    <div className="text-xs text-slate-500">user: {e.user.email}</div>
+                    <div className="text-xs text-slate-500">
+                      {t("super_admin.emails.user_prefix")} {e.user.email}
+                    </div>
                   )}
                 </td>
                 <td className="px-4 py-3">
                   <span className="font-mono text-xs">
-                    {TYPE_LABELS[e.type] ?? e.type}
+                    {t(`super_admin.emails.type.${e.type}`)}
                   </span>
                   {!e.templateKey && (
                     <span className="ml-1 rounded bg-slate-100 px-1 py-0.5 text-[10px] uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                      fallback
+                      {t("super_admin.emails.fallback_badge")}
                     </span>
                   )}
                 </td>
@@ -111,7 +109,7 @@ export function EmailsTable({ emails: initialEmails }: { emails: EmailRow[] }) {
                   <span
                     className={`rounded px-2 py-0.5 text-xs ${STATUS_BADGE[e.status] ?? STATUS_BADGE.pending}`}
                   >
-                    {e.status}
+                    {t(`super_admin.emails.status.${e.status}`)}
                   </span>
                   {e.error && (
                     <div className="mt-1 max-w-xs truncate text-xs text-red-600" title={e.error}>
@@ -124,7 +122,7 @@ export function EmailsTable({ emails: initialEmails }: { emails: EmailRow[] }) {
             {emails.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                  No emails sent yet.
+                  {t("super_admin.emails.empty")}
                 </td>
               </tr>
             )}
@@ -152,6 +150,7 @@ function EmailDetailDialog({
   onClose: () => void;
   onResent: (r: ResendResult) => void;
 }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>(email.bodyHtml ? "html" : "text");
   const [resending, setResending] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
@@ -163,7 +162,7 @@ function EmailDetailDialog({
     const res = await fetch(`/api/super-admin/emails/${email.id}/resend`, { method: "POST" });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      setResendError(body?.error ?? "Resend failed");
+      setResendError(body?.error ?? t("super_admin.emails.resend_failed"));
       setResending(false);
       return;
     }
@@ -186,16 +185,16 @@ function EmailDetailDialog({
               {email.subject}
             </h3>
             <p className="mt-1 text-xs text-slate-500">
-              {TYPE_LABELS[email.type] ?? email.type}
+              {t(`super_admin.emails.type.${email.type}`)}
               {!email.templateKey && (
                 <span className="ml-2 rounded bg-slate-100 px-1 py-0.5 text-[10px] uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  fallback
+                  {t("super_admin.emails.fallback_badge")}
                 </span>
               )}
               <span
                 className={`ml-2 rounded px-1.5 py-0.5 text-xs ${STATUS_BADGE[email.status] ?? STATUS_BADGE.pending}`}
               >
-                {email.status}
+                {t(`super_admin.emails.status.${email.status}`)}
               </span>
             </p>
           </div>
@@ -207,7 +206,9 @@ function EmailDetailDialog({
                 disabled={resending}
                 className="rounded-md bg-slate-900 px-3 py-1 text-xs font-medium text-white shadow hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
               >
-                {resending ? "Resending…" : "Resend"}
+                {resending
+                  ? t("super_admin.emails.resending")
+                  : t("super_admin.emails.resend")}
               </button>
             )}
             <button
@@ -215,7 +216,7 @@ function EmailDetailDialog({
               onClick={onClose}
               className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              Close
+              {t("admin.action.close")}
             </button>
           </div>
         </div>
@@ -227,41 +228,57 @@ function EmailDetailDialog({
         )}
 
         <dl className="grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-800 dark:bg-slate-950 sm:grid-cols-[max-content_1fr]">
-          <dt className="font-semibold text-slate-500">To</dt>
+          <dt className="font-semibold text-slate-500">{t("super_admin.emails.dialog.to")}</dt>
           <dd className="break-all">{email.to}</dd>
           {email.user && email.user.email !== email.to && (
             <>
-              <dt className="font-semibold text-slate-500">User</dt>
+              <dt className="font-semibold text-slate-500">
+                {t("super_admin.emails.dialog.user")}
+              </dt>
               <dd className="break-all">{email.user.email}</dd>
             </>
           )}
-          <dt className="font-semibold text-slate-500">Sent at</dt>
+          <dt className="font-semibold text-slate-500">
+            {t("super_admin.emails.dialog.sent_at")}
+          </dt>
           <dd>{email.sentAtDisplay}</dd>
-          <dt className="font-semibold text-slate-500">Template key</dt>
-          <dd className="font-mono">{email.templateKey ?? <span className="text-slate-500">— (built-in fallback)</span>}</dd>
+          <dt className="font-semibold text-slate-500">
+            {t("super_admin.emails.dialog.template_key")}
+          </dt>
+          <dd className="font-mono">
+            {email.templateKey ?? (
+              <span className="text-slate-500">
+                {t("super_admin.emails.dialog.template_fallback")}
+              </span>
+            )}
+          </dd>
           {email.error && (
             <>
-              <dt className="font-semibold text-slate-500">Error</dt>
+              <dt className="font-semibold text-slate-500">
+                {t("super_admin.emails.dialog.error")}
+              </dt>
               <dd className="break-words text-red-600">{email.error}</dd>
             </>
           )}
         </dl>
 
         <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
-          {(["html", "text"] as Tab[]).map((t) => (
+          {(["html", "text"] as Tab[]).map((tabKey) => (
             <button
-              key={t}
+              key={tabKey}
               type="button"
-              disabled={t === "html" && !email.bodyHtml}
-              onClick={() => setTab(t)}
+              disabled={tabKey === "html" && !email.bodyHtml}
+              onClick={() => setTab(tabKey)}
               className={
                 "rounded-t-md px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 " +
-                (tab === t
+                (tab === tabKey
                   ? "border-x border-t border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                   : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800")
               }
             >
-              {t === "html" ? "HTML" : "Plain text"}
+              {tabKey === "html"
+                ? t("super_admin.emails.tab.html")
+                : t("super_admin.emails.tab.text")}
             </button>
           ))}
         </div>
@@ -276,7 +293,7 @@ function EmailDetailDialog({
             />
           ) : (
             <p className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950">
-              No HTML body — only the plain-text version was sent.
+              {t("super_admin.emails.no_html_body")}
             </p>
           ))}
 

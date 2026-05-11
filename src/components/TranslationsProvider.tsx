@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo } from "react";
 
-import { translate, type TranslationDict } from "@/lib/translations";
+import { translate, type TranslateParams, type TranslationDict } from "@/lib/translations";
 
 /**
  * Carries the resolved translation dictionary for the current request
@@ -37,12 +37,12 @@ export function TranslationsProvider({
  * the key itself — making typos loud in QA.
  */
 export function useTranslation(): {
-  t: (key: string) => string;
+  t: (key: string, params?: TranslateParams) => string;
   dict: TranslationDict;
 } {
   const dict = useContext(TranslationsContext) ?? {};
   return {
     dict,
-    t: (key: string) => translate(dict, key),
+    t: (key: string, params?: TranslateParams) => translate(dict, key, params),
   };
 }

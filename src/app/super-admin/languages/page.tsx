@@ -2,8 +2,10 @@ import { LanguagesList, type LanguageRow } from "@/components/super-admin/Langua
 import { prisma } from "@/lib/db";
 import { ensureDefaultLanguage } from "@/lib/languages";
 import { COUNTRIES } from "@/lib/locales";
+import { getServerT } from "@/lib/translations.server";
 
 export default async function LanguagesPage() {
+  const t = await getServerT();
   await ensureDefaultLanguage();
 
   const languages = await prisma.language.findMany({
@@ -36,10 +38,11 @@ export default async function LanguagesPage() {
   return (
     <section className="flex w-full flex-col gap-6">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">Languages</h2>
+        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          {t("super_admin.languages.title")}
+        </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Manage the languages your app supports. Pick a country, then a language if the
-          country has more than one official language.
+          {t("super_admin.languages.description")}
         </p>
       </div>
       <LanguagesList initial={initial} countries={countries} />

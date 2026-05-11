@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { useTranslation } from "@/components/TranslationsProvider";
 import { flagEmoji, formatLocaleLabel } from "@/lib/locales";
 
 export type AdminUser = {
@@ -33,6 +34,7 @@ export function UsersTable({
   languages: LanguageOption[];
   currentUserId: string;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
   const [mode, setMode] = useState<Mode>({ kind: "idle" });
@@ -51,16 +53,16 @@ export function UsersTable({
 
   async function onDelete(user: AdminUser) {
     if (user.id === currentUserId) {
-      setError("You can't delete your own account here.");
+      setError(t("super_admin.users.delete_self_error"));
       return;
     }
-    if (!confirm(`Delete ${user.email}? This cannot be undone.`)) return;
+    if (!confirm(t("super_admin.users.delete_confirm", { email: user.email }))) return;
     setError(null);
     startTransition(async () => {
       const res = await fetch(`/api/super-admin/users/${user.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? "Delete failed");
+        setError(body?.error ?? t("super_admin.users.delete_failed"));
         return;
       }
       refresh(users.filter((u) => u.id !== user.id));
@@ -84,7 +86,7 @@ export function UsersTable({
           }}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
         >
-          + New user
+          {t("super_admin.users.new")}
         </button>
       </div>
 
@@ -92,12 +94,12 @@ export function UsersTable({
         <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
             <tr>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Language</th>
-              <th className="px-4 py-3">Super admin</th>
-              <th className="px-4 py-3">Created</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3">{t("super_admin.users.col.email")}</th>
+              <th className="px-4 py-3">{t("super_admin.users.col.name")}</th>
+              <th className="px-4 py-3">{t("super_admin.users.col.language")}</th>
+              <th className="px-4 py-3">{t("super_admin.users.col.super_admin")}</th>
+              <th className="px-4 py-3">{t("super_admin.users.col.created")}</th>
+              <th className="px-4 py-3 text-right">{t("super_admin.users.col.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -107,7 +109,7 @@ export function UsersTable({
                   {u.email}
                   {u.id === currentUserId && (
                     <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                      you
+                      {t("admin.you_chip")}
                     </span>
                   )}
                 </td>
@@ -128,10 +130,16 @@ export function UsersTable({
                       );
                     })()
                   ) : (
-                    <span className="text-slate-400">Default</span>
+                    <span className="text-slate-400">
+                      {t("super_admin.users.language.default")}
+                    </span>
                   )}
                 </td>
-                <td className="px-4 py-3">{u.isSuperAdmin ? "Yes" : "No"}</td>
+                <td className="px-4 py-3">
+                  {u.isSuperAdmin
+                    ? t("super_admin.users.is_super.yes")
+                    : t("super_admin.users.is_super.no")}
+                </td>
                 <td className="px-4 py-3 text-slate-500">
                   {new Date(u.createdAt).toLocaleDateString()}
                 </td>
@@ -145,7 +153,7 @@ export function UsersTable({
                       }}
                       className="rounded-md border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
                     >
-                      Edit
+                      {t("admin.action.edit")}
                     </button>
                     <button
                       type="button"
@@ -153,7 +161,7 @@ export function UsersTable({
                       disabled={pending}
                       className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
                     >
-                      Delete
+                      {t("admin.action.delete")}
                     </button>
                   </div>
                 </td>
@@ -162,7 +170,7 @@ export function UsersTable({
             {users.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                  No users yet.
+                  {t("super_admin.users.empty")}
                 </td>
               </tr>
             )}
@@ -203,6 +211,7 @@ function UserDialog({
   onSaved: (user: AdminUser, isCreate: boolean) => void;
   onError: (msg: string) => void;
 }) {
+  const { t } = useTranslation();
   const isCreate = mode.kind === "create";
   const initial = isCreate ? null : mode.user;
   const [pending, setPending] = useState(false);
@@ -237,7 +246,11 @@ function UserDialog({
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      const msg = body?.error ?? `${isCreate ? "Create" : "Update"} failed`;
+      const msg =
+        body?.error ??
+        (isCreate
+          ? t("super_admin.users.dialog.create_failed")
+          : t("super_admin.users.dialog.update_failed"));
       setLocalError(msg);
       onError(msg);
       setPending(false);
@@ -258,19 +271,21 @@ function UserDialog({
         onSubmit={onSubmit}
         className="flex w-full max-w-md flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-800 dark:bg-slate-900"
       >
-        <h3 className="text-lg font-semibold">{isCreate ? "Create user" : "Edit user"}</h3>
+        <h3 className="text-lg font-semibold">
+          {isCreate
+            ? t("super_admin.users.dialog.create_title")
+            : t("super_admin.users.dialog.edit_title")}
+        </h3>
         {isCreate && (
           <p className="text-xs text-slate-500">
-            On create, the <code className="font-mono">user_invitation</code> email is sent
-            to the new user. Customise it at <em>/super-admin/email-templates</em>; if no
-            template is defined, a built-in fallback is used. Variables:{" "}
+            {t("super_admin.users.dialog.invite_hint")}{" "}
             <code className="font-mono">{"{{name}}"}</code>,{" "}
             <code className="font-mono">{"{{email}}"}</code>,{" "}
             <code className="font-mono">{"{{password}}"}</code>,{" "}
             <code className="font-mono">{"{{loginUrl}}"}</code>.
           </p>
         )}
-        <Field label="Name" htmlFor="name">
+        <Field label={t("super_admin.users.col.name")} htmlFor="name">
           <input
             id="name"
             name="name"
@@ -279,7 +294,7 @@ function UserDialog({
             className={inputClass}
           />
         </Field>
-        <Field label="Email" htmlFor="email">
+        <Field label={t("super_admin.users.col.email")} htmlFor="email">
           <input
             id="email"
             name="email"
@@ -290,7 +305,11 @@ function UserDialog({
           />
         </Field>
         <Field
-          label={isCreate ? "Password" : "New password (leave blank to keep current)"}
+          label={
+            isCreate
+              ? t("super_admin.users.dialog.password")
+              : t("super_admin.users.dialog.password_edit")
+          }
           htmlFor="password"
         >
           <input
@@ -302,14 +321,14 @@ function UserDialog({
             className={inputClass}
           />
         </Field>
-        <Field label="Language" htmlFor="languageId">
+        <Field label={t("super_admin.users.col.language")} htmlFor="languageId">
           <select
             id="languageId"
             value={languageId}
             onChange={(e) => setLanguageId(e.target.value)}
             className={inputClass}
           >
-            <option value="">Site default</option>
+            <option value="">{t("super_admin.users.dialog.site_default")}</option>
             {languages.map((l) => (
               <option key={l.id} value={l.id}>
                 {flagEmoji(l.countryCode)} {formatLocaleLabel(l.countryCode, l.languageCode)}
@@ -325,7 +344,7 @@ function UserDialog({
             defaultChecked={initial?.isSuperAdmin ?? false}
             className="h-4 w-4 rounded border-slate-300"
           />
-          Super admin
+          {t("super_admin.users.dialog.super_admin_checkbox")}
         </label>
         {localError && <p className="text-sm text-red-600">{localError}</p>}
         <div className="flex justify-end gap-2">
@@ -334,10 +353,14 @@ function UserDialog({
             onClick={onClose}
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
           >
-            Cancel
+            {t("admin.action.cancel")}
           </button>
           <button type="submit" disabled={pending} className={buttonClass + " w-auto"}>
-            {pending ? "Saving…" : isCreate ? "Create user" : "Save changes"}
+            {pending
+              ? t("admin.action.saving")
+              : isCreate
+                ? t("super_admin.users.dialog.create_submit")
+                : t("super_admin.users.dialog.edit_submit")}
           </button>
         </div>
       </form>
