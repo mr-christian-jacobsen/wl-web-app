@@ -328,6 +328,13 @@ model Translation {
   translationKeyId String
   languageId       String
   value            String
+  /// Provenance of the current value:
+  ///   "human"  — set by an admin in the editor (default).
+  ///   "auto"   — produced by the auto-translate provider and either
+  ///              committed directly or saved without further edits.
+  /// Editing a row in the UI flips this back to "human" on save so
+  /// the system always knows which strings still need a human review.
+  source           String   @default("human")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -336,6 +343,7 @@ model Translation {
 
   @@unique([translationKeyId, languageId])
   @@index([languageId])
+  @@index([source])
 }
 
 /// Append-only log of runtime errors, warnings and explicit info events.

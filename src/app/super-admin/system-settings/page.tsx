@@ -1,10 +1,19 @@
-import { getLogRetention, getSmtpSettings } from "@/lib/system-settings";
+import {
+  getLogRetention,
+  getSmtpSettings,
+  getTranslateSettings,
+} from "@/lib/system-settings";
 
 import { LogRetentionForm } from "@/components/super-admin/LogRetentionForm";
 import { SmtpSettingsForm } from "@/components/super-admin/SmtpSettingsForm";
+import { TranslateProviderForm } from "@/components/super-admin/TranslateProviderForm";
 
 export default async function SuperAdminSystemSettingsPage() {
-  const [smtp, retention] = await Promise.all([getSmtpSettings(), getLogRetention()]);
+  const [smtp, retention, translate] = await Promise.all([
+    getSmtpSettings(),
+    getLogRetention(),
+    getTranslateSettings(),
+  ]);
 
   return (
     <section className="flex flex-col gap-4">
@@ -17,6 +26,7 @@ export default async function SuperAdminSystemSettingsPage() {
       </div>
 
       <SmtpSettingsForm initial={smtp} />
+      <TranslateProviderForm initial={translate} />
       <LogRetentionForm initial={retention} />
     </section>
   );

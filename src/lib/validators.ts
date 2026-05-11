@@ -353,6 +353,57 @@ export const updateTranslationSchema = z.object({
 });
 export type UpdateTranslationInput = z.infer<typeof updateTranslationSchema>;
 
+/**
+ * Body for POST /api/super-admin/translations/auto-translate.
+ * `scope` chooses what to translate:
+ *   - "missing": rows that are absent or empty for the target language
+ *   - "all":     every key — re-translate even where a value exists
+ *   - object:    explicit subset of TranslationKey ids
+ * `commit: true` writes the result (with `source = "auto"`); false
+ * returns suggestions without persisting.
+ */
+export const autoTranslateRequestSchema = z.object({
+  languageId: z.string().trim().min(1, "languageId is required"),
+  scope: z.union([
+    z.literal("missing"),
+    z.literal("all"),
+    z.object({
+      keyIds: z
+        .array(z.string().trim().min(1))
+        .min(1, "Provide at least one keyId")
+        .max(500, "Too many keys in a single request"),
+    }),
+  ]),
+  commit: z.boolean().default(false),
+});
+export type AutoTranslateRequestInput = z.infer<typeof autoTranslateRequestSchema>;
+
+/**
+ * Body for PATCH /api/super-admin/system-settings/translate-provider.
+ * `apiKey` of `""` (empty string) is treated as "leave it untouched"
+ * to match the SMTP form convention; pass `null` to clear it.
+ */
+export const updateTranslateSettingsSchema = z.object({
+  provider: z.enum(["anthropic", "openai"]),
+  anthropicModel: z.string().trim().max(120).optional(),
+  anthropicApiKey: z
+    .union([z.string().max(255), z.null()])
+    .optional()
+    .transform((v): string | null | undefined => {
+      if (v === undefined || v === "") return undefined;
+      return v;
+    }),
+  openaiModel: z.string().trim().max(120).optional(),
+  openaiApiKey: z
+    .union([z.string().max(255), z.null()])
+    .optional()
+    .transform((v): string | null | undefined => {
+      if (v === undefined || v === "") return undefined;
+      return v;
+    }),
+});
+export type UpdateTranslateSettingsInput = z.infer<typeof updateTranslateSettingsSchema>;
+
 export const themePreferenceSchema = z.object({
   theme: z.enum(["light", "dark", "system"]),
 });
