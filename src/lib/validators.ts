@@ -340,6 +340,19 @@ export const createLanguageSchema = z
   });
 export type CreateLanguageInput = z.infer<typeof createLanguageSchema>;
 
+/**
+ * PATCH body for /api/super-admin/translations — upserts one translated
+ * value. The empty string is allowed (and means "fall back to default
+ * language at lookup time") so admins can blank out a translation
+ * without an explicit delete endpoint.
+ */
+export const updateTranslationSchema = z.object({
+  translationKeyId: z.string().trim().min(1, "translationKeyId is required"),
+  languageId: z.string().trim().min(1, "languageId is required"),
+  value: z.string().max(8_192, "Translation must be at most 8192 characters"),
+});
+export type UpdateTranslationInput = z.infer<typeof updateTranslationSchema>;
+
 export const themePreferenceSchema = z.object({
   theme: z.enum(["light", "dark", "system"]),
 });

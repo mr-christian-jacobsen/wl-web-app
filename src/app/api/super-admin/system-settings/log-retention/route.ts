@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { pruneLogEntries } from "@/lib/log.prune";
 import { requireSuperAdmin } from "@/lib/super-admin";
 import { SETTING_KEYS, getLogRetention, setSetting } from "@/lib/system-settings";
 import { updateLogRetentionSchema } from "@/lib/validators";

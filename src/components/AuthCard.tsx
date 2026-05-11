@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+
+import { useTranslation } from "@/components/TranslationsProvider";
 
 export function AuthCard({
   title,
@@ -11,11 +15,12 @@ export function AuthCard({
   footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
       <header className="space-y-1">
         <Link href="/" className="text-xs font-medium text-slate-500 hover:underline">
-          ← Back home
+          {t("auth.back_home")}
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {subtitle && <p className="text-sm text-slate-600 dark:text-slate-400">{subtitle}</p>}

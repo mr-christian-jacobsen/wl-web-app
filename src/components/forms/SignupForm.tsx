@@ -3,8 +3,10 @@
 import { useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { useTranslation } from "@/components/TranslationsProvider";
 
 export function SignupForm() {
+  const { t } = useTranslation();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function SignupForm() {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      setError(body?.error ?? "Sign up failed");
+      setError(body?.error ?? t("auth.signup.error.generic"));
       setPending(false);
       return;
     }
@@ -45,18 +47,22 @@ export function SignupForm() {
     return (
       <div className="flex flex-col gap-3">
         <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-          Account created. We sent a confirmation link to <strong>{submittedEmail}</strong>.
-          Click the link to activate your account, then sign in.
+          {t("auth.signup.success.heading")} <strong>{submittedEmail}</strong>.{" "}
+          {t("auth.signup.success.body")}
         </p>
         <p className="text-xs text-slate-500">
-          Didn&apos;t receive it?{" "}
+          {t("auth.signup.success.resend_prompt")}{" "}
           <button
             type="button"
             onClick={onResend}
             disabled={resendState !== "idle"}
             className="font-medium text-slate-700 underline disabled:opacity-60 dark:text-slate-300"
           >
-            {resendState === "sent" ? "Sent again." : resendState === "sending" ? "Sending…" : "Resend"}
+            {resendState === "sent"
+              ? t("auth.signup.resend.sent")
+              : resendState === "sending"
+                ? t("auth.signup.resend.sending")
+                : t("auth.signup.resend.idle")}
           </button>
         </p>
       </div>
@@ -65,18 +71,40 @@ export function SignupForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <Field label="Name" htmlFor="name">
-        <input id="name" name="name" type="text" autoComplete="name" required className={inputClass} />
+      <Field label={t("auth.signup.field.name")} htmlFor="name">
+        <input
+          id="name"
+          name="name"
+          type="text"
+          autoComplete="name"
+          required
+          className={inputClass}
+        />
       </Field>
-      <Field label="Email" htmlFor="email">
-        <input id="email" name="email" type="email" autoComplete="email" required className={inputClass} />
+      <Field label={t("auth.signup.field.email")} htmlFor="email">
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          className={inputClass}
+        />
       </Field>
-      <Field label="Password" htmlFor="password">
-        <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required className={inputClass} />
+      <Field label={t("auth.signup.field.password")} htmlFor="password">
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          required
+          className={inputClass}
+        />
       </Field>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button type="submit" disabled={pending} className={buttonClass}>
-        {pending ? "Creating account…" : "Create account"}
+        {pending ? t("auth.signup.submit_pending") : t("auth.signup.submit")}
       </button>
     </form>
   );

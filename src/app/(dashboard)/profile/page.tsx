@@ -5,6 +5,7 @@ import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureDefaultLanguage } from "@/lib/languages";
+import { getServerT } from "@/lib/translations.server";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -34,13 +35,17 @@ export default async function ProfilePage() {
   ]);
   if (!user) redirect("/login");
 
+  const t = await getServerT();
+
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-8 py-8">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Your profile</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {t("profile.title")}
+          </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Update your name, email, password, language, and avatar.
+            {t("profile.subtitle")}
           </p>
         </div>
         {user.isSuperAdmin && (
@@ -48,7 +53,7 @@ export default async function ProfilePage() {
             href="/super-admin"
             className="self-start rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 sm:self-auto"
           >
-            Super admin →
+            {t("profile.super_admin_link")}
           </Link>
         )}
       </header>

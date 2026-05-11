@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
 import { AvatarCropper } from "@/components/profile/AvatarCropper";
 import { ThemeToggle } from "@/components/profile/ThemeToggle";
+import { useTranslation } from "@/components/TranslationsProvider";
 import { flagEmoji, formatLocaleLabel } from "@/lib/locales";
 
 type ThemeMode = "light" | "dark" | "system";
@@ -71,6 +72,7 @@ export function ProfileEditor({
   user: User;
   languages: LanguageOption[];
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { update } = useSession();
 
@@ -91,18 +93,18 @@ export function ProfileEditor({
       />
       <LanguageSection user={user} languages={languages} onUpdated={() => router.refresh()} />
       <Section
-        title="Appearance"
-        description="Choose how the app looks. Saved to your account, so it follows you on every device."
+        title={t("profile.section.appearance.title")}
+        description={t("profile.section.appearance.description")}
       >
         <ThemeToggle initial={initialTheme} />
       </Section>
       <PasswordSection />
-      <Section title="Sign out">
+      <Section title={t("profile.section.signout.title")}>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
           className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
         >
-          Sign out
+          {t("profile.section.signout.button")}
         </button>
       </Section>
     </div>
@@ -116,6 +118,7 @@ function AvatarSection({
   user: User;
   onUpdated: (url: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -153,7 +156,7 @@ function AvatarSection({
   }
 
   async function onRemove() {
-    if (!confirm("Remove your avatar?")) return;
+    if (!confirm(t("profile.section.avatar.remove_confirm"))) return;
     setPending(true);
     setStatus({ kind: "idle" });
     const res = await fetch("/api/profile/avatar", { method: "DELETE" });
@@ -170,7 +173,10 @@ function AvatarSection({
   }
 
   return (
-    <Section title="Profile image" description="JPEG, PNG, or WebP. Max 2 MB.">
+    <Section
+      title={t("profile.section.avatar.title")}
+      description={t("profile.section.avatar.description")}
+    >
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
         <div className="h-20 w-20 overflow-hidden rounded-full border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
           {avatarUrl ? (
@@ -196,7 +202,9 @@ function AvatarSection({
             disabled={pending}
             className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
           >
-            {pending ? "Uploading…" : "Upload new image"}
+            {pending
+              ? t("profile.section.avatar.uploading")
+              : t("profile.section.avatar.upload")}
           </button>
           {avatarUrl && (
             <button
@@ -205,7 +213,7 @@ function AvatarSection({
               disabled={pending}
               className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
             >
-              Remove
+              {t("profile.section.avatar.remove")}
             </button>
           )}
         </div>
@@ -229,6 +237,7 @@ function DetailsSection({
   user: User;
   onUpdated: (patch: { name?: string; email?: string }) => void;
 }) {
+  const { t } = useTranslation();
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
@@ -273,12 +282,12 @@ function DetailsSection({
   }
 
   return (
-    <Section title="Account details">
+    <Section title={t("profile.section.details.title")}>
       <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
-        <Field label="Name" htmlFor="name">
+        <Field label={t("profile.section.details.field.name")} htmlFor="name">
           <input id="name" name="name" defaultValue={user.name} required className={inputClass} />
         </Field>
-        <Field label="Email" htmlFor="email">
+        <Field label={t("profile.section.details.field.email")} htmlFor="email">
           <input
             id="email"
             name="email"
@@ -290,7 +299,9 @@ function DetailsSection({
         </Field>
         <div className="sm:col-span-2">
           <button type="submit" disabled={pending} className={buttonClass}>
-            {pending ? "Saving…" : "Save changes"}
+            {pending
+              ? t("profile.section.details.saving")
+              : t("profile.section.details.save")}
           </button>
           <StatusLine status={status} />
         </div>
@@ -308,6 +319,7 @@ function LanguageSection({
   languages: LanguageOption[];
   onUpdated: () => void;
 }) {
+  const { t } = useTranslation();
   // Empty string in the <select> represents "no preference" → null in
   // the JSON body, which the API translates into clearing the column so
   // the user follows the system default.
@@ -345,11 +357,11 @@ function LanguageSection({
 
   return (
     <Section
-      title="Language"
-      description="The language we use for emails and other notifications. Choose a specific language, or leave it blank to follow the site default."
+      title={t("profile.section.language.title")}
+      description={t("profile.section.language.description")}
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <Field label="Preferred language" htmlFor="languageId">
+        <Field label={t("profile.section.language.field")} htmlFor="languageId">
           <select
             id="languageId"
             name="languageId"
@@ -358,7 +370,7 @@ function LanguageSection({
             className={inputClass}
           >
             <option value="">
-              Site default
+              {t("profile.section.language.site_default")}
               {defaultLang
                 ? ` — ${formatLocaleLabel(defaultLang.countryCode, defaultLang.languageCode)}`
                 : ""}
@@ -373,7 +385,9 @@ function LanguageSection({
         </Field>
         <div>
           <button type="submit" disabled={pending} className={buttonClass}>
-            {pending ? "Saving…" : "Save language"}
+            {pending
+              ? t("profile.section.details.saving")
+              : t("profile.section.language.save")}
           </button>
           <StatusLine status={status} />
         </div>
@@ -383,6 +397,7 @@ function LanguageSection({
 }
 
 function PasswordSection() {
+  const { t } = useTranslation();
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
@@ -409,9 +424,12 @@ function PasswordSection() {
   }
 
   return (
-    <Section title="Change password" description="You'll need your current password to confirm.">
+    <Section
+      title={t("profile.section.password.title")}
+      description={t("profile.section.password.description")}
+    >
       <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
-        <Field label="Current password" htmlFor="currentPassword">
+        <Field label={t("profile.section.password.current")} htmlFor="currentPassword">
           <input
             id="currentPassword"
             name="currentPassword"
@@ -421,7 +439,7 @@ function PasswordSection() {
             className={inputClass}
           />
         </Field>
-        <Field label="New password" htmlFor="newPassword">
+        <Field label={t("profile.section.password.new")} htmlFor="newPassword">
           <input
             id="newPassword"
             name="newPassword"
@@ -434,7 +452,9 @@ function PasswordSection() {
         </Field>
         <div className="sm:col-span-2">
           <button type="submit" disabled={pending} className={buttonClass}>
-            {pending ? "Updating…" : "Update password"}
+            {pending
+              ? t("profile.section.password.updating")
+              : t("profile.section.password.update")}
           </button>
           <StatusLine status={status} />
         </div>

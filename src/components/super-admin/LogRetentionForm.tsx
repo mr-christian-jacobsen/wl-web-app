@@ -76,8 +76,8 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
       <div>
         <h2 className="text-base font-semibold">Log retention</h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Whole days. <code className="font-mono text-xs">0</code> means "never prune
-          this level". The auto-prune runs at most once per 24h, triggered
+          Whole days. <code className="font-mono text-xs">0</code> means &quot;never prune
+          this level&quot;. The auto-prune runs at most once per 24h, triggered
           opportunistically when a log entry is written.
         </p>
       </div>
