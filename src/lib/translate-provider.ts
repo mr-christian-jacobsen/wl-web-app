@@ -75,17 +75,33 @@ export async function autoTranslateBatch(
   }
 
   try {
-    if (config.provider === "anthropic") {
-      const items = await translateViaAnthropic(input, config.apiKey, config.model);
-      return { provider: config.provider, model: config.model, items };
+    // Translate in chunks so the model output stays well below
+    // max_tokens — empirically a single batch of 270+ items blows past
+    // the 4096-token cap and the LLM returns truncated JSON.
+    // Chunks run sequentially to keep rate-limit pressure low; the
+    // user-facing latency for a one-time fill is acceptable, and
+    // sequential chunks let us short-circuit on the first error so a
+    // bad call doesn't burn through the remaining keys.
+    const chunkSize = providerChunkSize(config.provider);
+    const allItems: AutoTranslateOutputItem[] = [];
+    for (let i = 0; i < input.items.length; i += chunkSize) {
+      const slice: AutoTranslateInput = {
+        ...input,
+        items: input.items.slice(i, i + chunkSize),
+      };
+      const chunkResult =
+        config.provider === "anthropic"
+          ? await translateViaAnthropic(slice, config.apiKey, config.model)
+          : config.provider === "openai"
+            ? await translateViaOpenAI(slice, config.apiKey, config.model)
+            : await translateViaDeepL(slice, config.apiKey);
+      allItems.push(...chunkResult);
     }
-    if (config.provider === "openai") {
-      const items = await translateViaOpenAI(input, config.apiKey, config.model);
-      return { provider: config.provider, model: config.model, items };
-    }
-    // deepl — no model selector, just a key (free vs pro auto-detected).
-    const items = await translateViaDeepL(input, config.apiKey);
-    return { provider: config.provider, model: "deepl", items };
+    return {
+      provider: config.provider,
+      model: config.provider === "deepl" ? "deepl" : config.model,
+      items: allItems,
+    };
   } catch (err) {
     await logError(err, {
       context: {
@@ -97,6 +113,27 @@ export async function autoTranslateBatch(
       },
     });
     throw err;
+  }
+}
+
+/**
+ * Cap each API call's batch size so the response fits inside the
+ * model's output window. Conservative defaults — the alternative is
+ * the LLM truncating its JSON mid-stream and `parseAndValidate`
+ * surfacing the unhelpful "non-JSON" error.
+ */
+function providerChunkSize(provider: "anthropic" | "openai" | "deepl"): number {
+  switch (provider) {
+    case "anthropic":
+    case "openai":
+      // ~40 short strings × ~80 tokens per item = comfortable within
+      // 4–8K output tokens, with headroom for longer admin descriptions.
+      return 40;
+    case "deepl":
+      // DeepL has no output-token budget per se, but very large batches
+      // can hit per-request rate limits. 100 is well within their
+      // recommended size.
+      return 100;
   }
 }
 
@@ -141,7 +178,10 @@ async function translateViaAnthropic(
 
   const resp = await client.messages.create({
     model,
-    max_tokens: 4096,
+    // Generous output budget so a chunk's JSON never gets truncated
+    // mid-stream. 8K covers ~80–100 short translations even with long
+    // values — well above our `providerChunkSize` of 40.
+    max_tokens: 8192,
     system,
     messages: [{ role: "user", content: user }],
   });
@@ -168,6 +208,10 @@ async function translateViaOpenAI(
       { role: "user", content: user },
     ],
     response_format: { type: "json_object" },
+    // Explicit budget matching the Anthropic side — same reasoning:
+    // a normal chunk has plenty of headroom, but without this we'd
+    // inherit whatever the OpenAI default is and risk silent truncation.
+    max_tokens: 8192,
   });
 
   const text = resp.choices[0]?.message?.content?.trim() ?? "";
@@ -276,7 +320,16 @@ function parseAndValidate(
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error(`Auto-translate returned non-JSON: ${cleaned.slice(0, 200)}`);
+    // The most common "non-JSON" failure is the response getting cut off
+    // mid-stream — the model hit max_tokens and the JSON ends with no
+    // closing brace. Help the operator spot that by including the tail.
+    const tail = cleaned.slice(-80);
+    const headTail = cleaned.length > 200 ? `${cleaned.slice(0, 120)}…${tail}` : cleaned;
+    const looksTruncated = !cleaned.trimEnd().endsWith("}");
+    const hint = looksTruncated
+      ? " (looks truncated — likely hit the model's max_tokens; try fewer items per batch)"
+      : "";
+    throw new Error(`Auto-translate returned non-JSON${hint}: ${headTail}`);
   }
 
   const rawItems =
