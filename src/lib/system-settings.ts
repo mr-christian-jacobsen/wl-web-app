@@ -16,14 +16,17 @@ export const SETTING_KEYS = {
   logRetentionInfoDays: "log.retention.infoDays",
   logLastPrunedAt: "log.lastPrunedAt",
   // Auto-translate provider config (see src/lib/translate-provider.ts).
-  // Provider is "anthropic" or "openai"; api keys are stored as secrets;
-  // model values are free-form strings so admins can flip between e.g.
-  // claude-haiku-4-5 and gpt-4o-mini without a code change.
+  // Provider is "anthropic" | "openai" | "deepl"; api keys are stored as
+  // secrets; model values are free-form strings so admins can flip
+  // between e.g. claude-haiku-4-5 and gpt-4o-mini without a code change.
+  // DeepL doesn't have models — the free/pro endpoint is auto-detected
+  // from the key suffix (DeepL Free keys end with `:fx`).
   translateProvider: "translate.provider",
   translateAnthropicApiKey: "translate.anthropic.apiKey",
   translateAnthropicModel: "translate.anthropic.model",
   translateOpenaiApiKey: "translate.openai.apiKey",
   translateOpenaiModel: "translate.openai.model",
+  translateDeeplApiKey: "translate.deepl.apiKey",
 } as const;
 
 /** Built-in defaults used when no override row exists in SystemSetting. */
@@ -43,6 +46,7 @@ const SECRET_KEYS = new Set<string>([
   SETTING_KEYS.smtpPass,
   SETTING_KEYS.translateAnthropicApiKey,
   SETTING_KEYS.translateOpenaiApiKey,
+  SETTING_KEYS.translateDeeplApiKey,
 ]);
 
 const ENV_FALLBACK: Record<string, string | undefined> = {
@@ -60,6 +64,7 @@ const ENV_FALLBACK: Record<string, string | undefined> = {
   [SETTING_KEYS.translateAnthropicModel]: process.env.ANTHROPIC_MODEL,
   [SETTING_KEYS.translateOpenaiApiKey]: process.env.OPENAI_API_KEY,
   [SETTING_KEYS.translateOpenaiModel]: process.env.OPENAI_MODEL,
+  [SETTING_KEYS.translateDeeplApiKey]: process.env.DEEPL_API_KEY,
 };
 
 /** Resolve a setting: DB value if a row exists (even if blank), else env. */
@@ -141,13 +146,22 @@ export async function getLogRetention(): Promise<LogRetention> {
   };
 }
 
-export type TranslateProvider = "anthropic" | "openai";
+export type TranslateProvider = "anthropic" | "openai" | "deepl";
 
 export type TranslateSettings = {
   provider: TranslateProvider;
   anthropic: { hasApiKey: boolean; model: string };
   openai: { hasApiKey: boolean; model: string };
+  deepl: { hasApiKey: boolean };
 };
+
+/** Coerce a free-form provider string from the DB/env to a known value. */
+function coerceProvider(raw: string | undefined | null): TranslateProvider {
+  const v = (raw ?? DEFAULT_TRANSLATE_PROVIDER).toLowerCase();
+  if (v === "openai") return "openai";
+  if (v === "deepl") return "deepl";
+  return "anthropic";
+}
 
 /** UI-safe view of the translate-provider configuration. Secrets reduced to presence flags. */
 export async function getTranslateSettings(): Promise<TranslateSettings> {
@@ -157,12 +171,10 @@ export async function getTranslateSettings(): Promise<TranslateSettings> {
     SETTING_KEYS.translateAnthropicModel,
     SETTING_KEYS.translateOpenaiApiKey,
     SETTING_KEYS.translateOpenaiModel,
+    SETTING_KEYS.translateDeeplApiKey,
   ]);
-  const providerRaw = (s[SETTING_KEYS.translateProvider] ?? DEFAULT_TRANSLATE_PROVIDER).toLowerCase();
-  const provider: TranslateProvider =
-    providerRaw === "openai" ? "openai" : "anthropic";
   return {
-    provider,
+    provider: coerceProvider(s[SETTING_KEYS.translateProvider]),
     anthropic: {
       hasApiKey: !!s[SETTING_KEYS.translateAnthropicApiKey],
       model:
@@ -173,6 +185,9 @@ export async function getTranslateSettings(): Promise<TranslateSettings> {
       model:
         s[SETTING_KEYS.translateOpenaiModel]?.trim() || DEFAULT_TRANSLATE_MODELS.openai,
     },
+    deepl: {
+      hasApiKey: !!s[SETTING_KEYS.translateDeeplApiKey],
+    },
   };
 }
 
@@ -181,25 +196,26 @@ export async function getTranslateSettings(): Promise<TranslateSettings> {
  * for the actual translate call. Returns null when no key is available
  * for the configured provider so callers can surface a friendly error
  * rather than letting the SDK throw.
+ *
+ * The shape is a discriminated union on `provider` so callers can
+ * narrow before reading provider-specific fields (LLMs have a model,
+ * DeepL doesn't).
  */
-export async function getTranslateConfigForSend(): Promise<
-  | {
-      provider: TranslateProvider;
-      apiKey: string;
-      model: string;
-    }
-  | null
-> {
+export type TranslateSendConfig =
+  | { provider: "anthropic"; apiKey: string; model: string }
+  | { provider: "openai"; apiKey: string; model: string }
+  | { provider: "deepl"; apiKey: string };
+
+export async function getTranslateConfigForSend(): Promise<TranslateSendConfig | null> {
   const s = await getSettings([
     SETTING_KEYS.translateProvider,
     SETTING_KEYS.translateAnthropicApiKey,
     SETTING_KEYS.translateAnthropicModel,
     SETTING_KEYS.translateOpenaiApiKey,
     SETTING_KEYS.translateOpenaiModel,
+    SETTING_KEYS.translateDeeplApiKey,
   ]);
-  const providerRaw = (s[SETTING_KEYS.translateProvider] ?? DEFAULT_TRANSLATE_PROVIDER).toLowerCase();
-  const provider: TranslateProvider =
-    providerRaw === "openai" ? "openai" : "anthropic";
+  const provider = coerceProvider(s[SETTING_KEYS.translateProvider]);
 
   if (provider === "anthropic") {
     const apiKey = s[SETTING_KEYS.translateAnthropicApiKey]?.trim();
@@ -211,13 +227,19 @@ export async function getTranslateConfigForSend(): Promise<
         s[SETTING_KEYS.translateAnthropicModel]?.trim() || DEFAULT_TRANSLATE_MODELS.anthropic,
     };
   }
-  const apiKey = s[SETTING_KEYS.translateOpenaiApiKey]?.trim();
+  if (provider === "openai") {
+    const apiKey = s[SETTING_KEYS.translateOpenaiApiKey]?.trim();
+    if (!apiKey) return null;
+    return {
+      provider,
+      apiKey,
+      model: s[SETTING_KEYS.translateOpenaiModel]?.trim() || DEFAULT_TRANSLATE_MODELS.openai,
+    };
+  }
+  // deepl
+  const apiKey = s[SETTING_KEYS.translateDeeplApiKey]?.trim();
   if (!apiKey) return null;
-  return {
-    provider,
-    apiKey,
-    model: s[SETTING_KEYS.translateOpenaiModel]?.trim() || DEFAULT_TRANSLATE_MODELS.openai,
-  };
+  return { provider, apiKey };
 }
 
 /** Read SMTP settings including the password — server-only, for actual sending. */

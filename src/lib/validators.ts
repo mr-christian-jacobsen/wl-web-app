@@ -383,24 +383,21 @@ export type AutoTranslateRequestInput = z.infer<typeof autoTranslateRequestSchem
  * `apiKey` of `""` (empty string) is treated as "leave it untouched"
  * to match the SMTP form convention; pass `null` to clear it.
  */
+const optionalApiKeyField = z
+  .union([z.string().max(255), z.null()])
+  .optional()
+  .transform((v): string | null | undefined => {
+    if (v === undefined || v === "") return undefined;
+    return v;
+  });
+
 export const updateTranslateSettingsSchema = z.object({
-  provider: z.enum(["anthropic", "openai"]),
+  provider: z.enum(["anthropic", "openai", "deepl"]),
   anthropicModel: z.string().trim().max(120).optional(),
-  anthropicApiKey: z
-    .union([z.string().max(255), z.null()])
-    .optional()
-    .transform((v): string | null | undefined => {
-      if (v === undefined || v === "") return undefined;
-      return v;
-    }),
+  anthropicApiKey: optionalApiKeyField,
   openaiModel: z.string().trim().max(120).optional(),
-  openaiApiKey: z
-    .union([z.string().max(255), z.null()])
-    .optional()
-    .transform((v): string | null | undefined => {
-      if (v === undefined || v === "") return undefined;
-      return v;
-    }),
+  openaiApiKey: optionalApiKeyField,
+  deeplApiKey: optionalApiKeyField,
 });
 export type UpdateTranslateSettingsInput = z.infer<typeof updateTranslateSettingsSchema>;
 

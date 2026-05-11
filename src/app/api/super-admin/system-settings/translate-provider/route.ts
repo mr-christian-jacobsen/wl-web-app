@@ -56,6 +56,9 @@ export async function PATCH(req: Request) {
     if (parsed.data.openaiApiKey !== undefined) {
       await setSetting(SETTING_KEYS.translateOpenaiApiKey, parsed.data.openaiApiKey);
     }
+    if (parsed.data.deeplApiKey !== undefined) {
+      await setSetting(SETTING_KEYS.translateDeeplApiKey, parsed.data.deeplApiKey);
+    }
 
     const settings = await getTranslateSettings();
     return NextResponse.json({ settings });

@@ -713,6 +713,14 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     name: "Translate provider — Save button",
     defaultValue: "Save provider settings",
   },
+  {
+    key: "super_admin.translate_provider.deepl.hint",
+    name: "Translate provider — DeepL help text under the API-key field",
+    description:
+      "Explains that DeepL has no model selector and that the free vs paid endpoint is auto-detected from the key.",
+    defaultValue:
+      "Free-tier keys end with “:fx” and are auto-routed to api-free.deepl.com. DeepL has no per-item context channel, so quality on short UI labels can be a step behind Anthropic/OpenAI.",
+  },
 ];
 
 const TRANSLATIONS_BY_KEY = new Map(KNOWN_TRANSLATIONS.map((t) => [t.key, t]));
