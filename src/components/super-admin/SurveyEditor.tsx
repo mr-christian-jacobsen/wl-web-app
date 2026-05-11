@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { StepTypeIcon } from "@/components/super-admin/StepTypeIcon";
 import { StepTypePicker } from "@/components/super-admin/StepTypePicker";
 import {
   DEFAULT_STEP_TYPE_KEY,
@@ -419,9 +420,11 @@ function StepRow({
         </button>
       </div>
 
-      <div className="h-12 w-12 shrink-0 rounded-md border border-slate-300 bg-white p-2 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={type.icon} alt={type.label} className="h-full w-full object-contain" />
+      <div
+        className="h-12 w-12 shrink-0 rounded-md border border-slate-300 bg-white p-2 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+        title={type.label}
+      >
+        <StepTypeIcon src={type.icon} className="h-full w-full" />
       </div>
 
       <div className="min-w-0 flex-1">
