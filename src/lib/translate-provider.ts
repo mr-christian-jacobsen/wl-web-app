@@ -67,21 +67,31 @@ export async function autoTranslateBatch(
     );
   }
   if (input.items.length === 0) {
-    return { provider: config.provider, model: config.model, items: [] };
+    return {
+      provider: config.provider,
+      model: config.provider === "deepl" ? "deepl" : config.model,
+      items: [],
+    };
   }
 
   try {
-    const items =
-      config.provider === "anthropic"
-        ? await translateViaAnthropic(input, config.apiKey, config.model)
-        : await translateViaOpenAI(input, config.apiKey, config.model);
-    return { provider: config.provider, model: config.model, items };
+    if (config.provider === "anthropic") {
+      const items = await translateViaAnthropic(input, config.apiKey, config.model);
+      return { provider: config.provider, model: config.model, items };
+    }
+    if (config.provider === "openai") {
+      const items = await translateViaOpenAI(input, config.apiKey, config.model);
+      return { provider: config.provider, model: config.model, items };
+    }
+    // deepl — no model selector, just a key (free vs pro auto-detected).
+    const items = await translateViaDeepL(input, config.apiKey);
+    return { provider: config.provider, model: "deepl", items };
   } catch (err) {
     await logError(err, {
       context: {
         feature: "auto-translate.batch",
         provider: config.provider,
-        model: config.model,
+        model: "model" in config ? config.model : "deepl",
         itemCount: input.items.length,
         targetLanguage: input.targetLanguageLabel,
       },
@@ -162,6 +172,88 @@ async function translateViaOpenAI(
 
   const text = resp.choices[0]?.message?.content?.trim() ?? "";
   return parseAndValidate(text, input.items);
+}
+
+/**
+ * DeepL — REST, no SDK. Free-tier keys end with `:fx` and use a
+ * different host (`api-free.deepl.com`) from paid keys; the routing is
+ * auto-detected so an admin can paste either kind of key and the call
+ * goes to the right endpoint.
+ *
+ * DeepL doesn't have a per-item context channel that maps cleanly to
+ * our per-key (`name`, `description`) hints — translations are produced
+ * from the source text alone — but its free tier (500k chars / month)
+ * makes it a useful no-cost backup. Translations come back in the same
+ * order they were submitted, so we zip them back to the originating
+ * keys without parsing.
+ */
+async function translateViaDeepL(
+  input: AutoTranslateInput,
+  apiKey: string,
+): Promise<AutoTranslateOutputItem[]> {
+  const isFree = apiKey.trim().endsWith(":fx");
+  const url = isFree
+    ? "https://api-free.deepl.com/v2/translate"
+    : "https://api.deepl.com/v2/translate";
+  const targetLang = toDeepLTargetLang(input.targetCountryCode, input.targetLanguageCode);
+
+  // DeepL accepts an array of `text` values via repeated form params.
+  // URLSearchParams handles repeated keys natively.
+  const params = new URLSearchParams();
+  for (const item of input.items) {
+    params.append("text", item.sourceText);
+  }
+  params.set("target_lang", targetLang);
+  params.set("preserve_formatting", "1");
+
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `DeepL-Auth-Key ${apiKey}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: params,
+  });
+  if (!resp.ok) {
+    const bodyText = await resp.text().catch(() => "");
+    throw new Error(
+      `DeepL API error ${resp.status}: ${bodyText.slice(0, 300) || resp.statusText}`,
+    );
+  }
+  const data = (await resp.json()) as {
+    translations: Array<{ detected_source_language?: string; text?: string }>;
+  };
+  if (!Array.isArray(data.translations) || data.translations.length === 0) {
+    throw new Error("DeepL response contained no translations");
+  }
+
+  // Zip results back with our input keys. DeepL preserves input order.
+  const out: AutoTranslateOutputItem[] = [];
+  for (let i = 0; i < input.items.length; i++) {
+    const item = input.items[i];
+    const text = data.translations[i]?.text;
+    if (item && typeof text === "string" && text.length > 0) {
+      out.push({ key: item.key, translation: text });
+    }
+  }
+  if (out.length === 0) {
+    throw new Error("DeepL returned no usable items");
+  }
+  return out;
+}
+
+/**
+ * Map our `(countryCode, languageCode)` pair to a DeepL target-language
+ * code. DeepL expects uppercase ISO 639-1, with region variants for
+ * a few languages where the locale matters (`EN-US`/`EN-GB`,
+ * `PT-PT`/`PT-BR`).
+ */
+function toDeepLTargetLang(countryCode: string, languageCode: string): string {
+  const lang = languageCode.trim().toUpperCase();
+  const country = countryCode.trim().toUpperCase();
+  if (lang === "EN") return country === "US" ? "EN-US" : "EN-GB";
+  if (lang === "PT") return country === "BR" ? "PT-BR" : "PT-PT";
+  return lang;
 }
 
 /**

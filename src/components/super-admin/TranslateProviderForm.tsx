@@ -29,6 +29,7 @@ export function TranslateProviderForm({ initial }: { initial: TranslateSettings 
   const [openaiModel, setOpenaiModel] = useState(initial.openai.model);
   const [anthropicKey, setAnthropicKey] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
+  const [deeplKey, setDeeplKey] = useState("");
   const [save, setSave] = useState<SaveState>({ kind: "idle" });
 
   async function patch(payload: Record<string, unknown>) {
@@ -50,6 +51,7 @@ export function TranslateProviderForm({ initial }: { initial: TranslateSettings 
     setOpenaiModel(body.settings.openai.model);
     setAnthropicKey("");
     setOpenaiKey("");
+    setDeeplKey("");
     setSave({ kind: "saved" });
   }
 
@@ -62,15 +64,17 @@ export function TranslateProviderForm({ initial }: { initial: TranslateSettings 
       // Empty string from the input means "leave it alone".
       ...(anthropicKey.length > 0 ? { anthropicApiKey: anthropicKey } : {}),
       ...(openaiKey.length > 0 ? { openaiApiKey: openaiKey } : {}),
+      ...(deeplKey.length > 0 ? { deeplApiKey: deeplKey } : {}),
     });
   }
 
-  async function clearKey(which: "anthropic" | "openai") {
+  async function clearKey(which: "anthropic" | "openai" | "deepl") {
     if (!confirm(t("super_admin.translate_provider.clear_confirm"))) return;
-    await patch({
-      provider,
-      ...(which === "anthropic" ? { anthropicApiKey: null } : { openaiApiKey: null }),
-    });
+    const patchBody: Record<string, unknown> = { provider };
+    if (which === "anthropic") patchBody.anthropicApiKey = null;
+    else if (which === "openai") patchBody.openaiApiKey = null;
+    else patchBody.deeplApiKey = null;
+    await patch(patchBody);
   }
 
   return (
@@ -94,11 +98,14 @@ export function TranslateProviderForm({ initial }: { initial: TranslateSettings 
         <select
           id="provider"
           value={provider}
-          onChange={(e) => setProvider(e.target.value as "anthropic" | "openai")}
+          onChange={(e) =>
+            setProvider(e.target.value as "anthropic" | "openai" | "deepl")
+          }
           className={inputClass}
         >
           <option value="anthropic">Anthropic (Claude)</option>
           <option value="openai">OpenAI</option>
+          <option value="deepl">DeepL</option>
         </select>
       </Field>
 
@@ -185,6 +192,42 @@ export function TranslateProviderForm({ initial }: { initial: TranslateSettings 
           <button
             type="button"
             onClick={() => clearKey("openai")}
+            className="self-start rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+          >
+            {t("super_admin.translate_provider.clear_button")}
+          </button>
+        )}
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
+        <legend className="px-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          DeepL
+        </legend>
+        <Field
+          label={t("super_admin.translate_provider.field.api_key")}
+          htmlFor="deeplApiKey"
+        >
+          <input
+            id="deeplApiKey"
+            type="password"
+            autoComplete="off"
+            value={deeplKey}
+            onChange={(e) => setDeeplKey(e.target.value)}
+            placeholder={
+              settings.deepl.hasApiKey
+                ? t("super_admin.translate_provider.api_key.set_placeholder")
+                : t("super_admin.translate_provider.api_key.unset_placeholder")
+            }
+            className={inputClass}
+          />
+        </Field>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {t("super_admin.translate_provider.deepl.hint")}
+        </p>
+        {settings.deepl.hasApiKey && (
+          <button
+            type="button"
+            onClick={() => clearKey("deepl")}
             className="self-start rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
           >
             {t("super_admin.translate_provider.clear_button")}
