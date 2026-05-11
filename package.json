@@ -20,6 +20,7 @@
     "db:studio": "prisma studio",
     "promote-admin": "node scripts/promote-super-admin.mjs",
     "backfill-verified": "node scripts/backfill-email-verified.mjs",
+    "sync-translations": "node scripts/sync-translations.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {
