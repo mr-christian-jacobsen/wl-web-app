@@ -485,6 +485,11 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     defaultValue: "System settings",
   },
   {
+    key: "super_admin.nav.api_docs",
+    name: "Super admin nav — API docs",
+    defaultValue: "API docs",
+  },
+  {
     key: "super_admin.nav.back_to_profile",
     name: "Super admin nav — '← Back to profile' link",
     defaultValue: "← Back to profile",
