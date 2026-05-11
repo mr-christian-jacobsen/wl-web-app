@@ -1,6 +1,6 @@
 // Pinned locale + UTC so SSR and CSR render the same string regardless of the
 // machine's locale or timezone. Used wherever a Date is shown to admins.
-const EMAIL_DATE_FMT = new Intl.DateTimeFormat("en-GB", {
+const ADMIN_DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
@@ -11,6 +11,9 @@ const EMAIL_DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
 });
 
-export function formatEmailSentAt(date: Date): string {
-  return `${EMAIL_DATE_FMT.format(date)} UTC`;
+export function formatAdminTimestamp(date: Date): string {
+  return `${ADMIN_DATE_FMT.format(date)} UTC`;
 }
+
+/** @deprecated Use `formatAdminTimestamp`; kept for callers in /super-admin/emails. */
+export const formatEmailSentAt = formatAdminTimestamp;

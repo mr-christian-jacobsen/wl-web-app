@@ -31,6 +31,10 @@ model User {
   /// the user row.
   languageId      String?
   language        Language? @relation(fields: [languageId], references: [id], onDelete: SetNull)
+  /// "light" | "dark" | "system" (or null = system).
+  /// Resolved server-side at request time; the inline script in the root
+  /// layout applies the OS preference for "system" before first paint.
+  themePreference String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -38,6 +42,7 @@ model User {
   verificationTokens EmailVerificationToken[]
   usageSessions      UsageSession[]
   emails             Email[]
+  logEntries         LogEntry[]
 
   @@index([languageId])
 }
@@ -162,6 +167,8 @@ model UsageSession {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  logEntries LogEntry[]
+
   @@index([userId, lastActiveAt])
   @@index([startedAt])
 }
@@ -282,4 +289,47 @@ model Language {
 
   @@unique([countryCode, languageCode])
   @@index([countryCode])
+}
+
+/// Append-only log of runtime errors, warnings and explicit info events.
+/// Identical events collapse onto a single row via the unique `fingerprint`
+/// hash; `count` and `lastOccurredAt` advance on every recurrence so a
+/// flapping bug doesn't flood the table.
+model LogEntry {
+  id              String   @id @default(cuid())
+  level           String // "error" | "warning" | "info"
+  source          String // "server" | "client"
+  fingerprint     String   @unique
+  /// Error class name when known: "TypeError", "PrismaClientKnownRequestError", etc.
+  name            String?
+  message         String
+  stack           String?
+  /// JSON blob of caller-supplied context. Never includes request bodies or
+  /// form data unless the caller passed it deliberately.
+  context         String?
+  // Server-side request metadata.
+  method          String?
+  path            String?
+  statusCode      Int?
+  // Client-side request metadata.
+  url             String?
+  userAgent       String?
+
+  count           Int      @default(1)
+  firstOccurredAt DateTime @default(now())
+  lastOccurredAt  DateTime @updatedAt
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /// Latest active UsageSession for the user at the time of the event, when
+  /// known. Lets the detail modal surface OS/browser/device without needing
+  /// to re-parse the user-agent.
+  sessionId String?
+  session   UsageSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([level, lastOccurredAt])
+  @@index([userId])
+  @@index([source])
+  @@index([sessionId])
 }

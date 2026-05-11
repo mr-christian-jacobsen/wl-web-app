@@ -339,3 +339,29 @@ export const createLanguageSchema = z
     path: ["languageCode"],
   });
 export type CreateLanguageInput = z.infer<typeof createLanguageSchema>;
+
+export const themePreferenceSchema = z.object({
+  theme: z.enum(["light", "dark", "system"]),
+});
+export type ThemePreferenceInput = z.infer<typeof themePreferenceSchema>;
+
+export const updateLogRetentionSchema = z.object({
+  // 0 means "never prune". Cap at ~10 years just to keep the input sane.
+  errorDays: z.number().int().min(0).max(3_650),
+  warningDays: z.number().int().min(0).max(3_650),
+  infoDays: z.number().int().min(0).max(3_650),
+});
+export type UpdateLogRetentionInput = z.infer<typeof updateLogRetentionSchema>;
+
+export const clientLogEntrySchema = z.object({
+  level: z.enum(["error", "warning", "info"]),
+  name: z.string().max(255).nullable().optional(),
+  message: z.string().min(1).max(8_192),
+  stack: z.string().max(64_000).nullable().optional(),
+  // The client-supplied context is opaque JSON the caller passed deliberately.
+  // Stored as-is (capped + stringified) on the server.
+  context: z.unknown().optional(),
+  url: z.string().max(2_048).nullable().optional(),
+  userAgent: z.string().max(1_024).nullable().optional(),
+});
+export type ClientLogEntryInput = z.infer<typeof clientLogEntrySchema>;

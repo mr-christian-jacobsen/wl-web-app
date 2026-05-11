@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { sendUserInvitationEmail } from "@/lib/email";
+import { logError } from "@/lib/log.server";
 import { hashPassword } from "@/lib/password";
 import { requireSuperAdmin } from "@/lib/super-admin";
 import { adminCreateUserSchema } from "@/lib/validators";
@@ -85,7 +86,10 @@ export async function POST(req: Request) {
       languageId: user.languageId,
     });
   } catch (err) {
-    console.error(`[super-admin] Failed to send welcome email to ${user.email}:`, err);
+    await logError(err, {
+      context: { feature: "super-admin.user-invite", inviteeEmail: user.email },
+      userId: user.id,
+    });
   }
 
   return NextResponse.json({ user }, { status: 201 });

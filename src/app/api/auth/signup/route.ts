@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { VERIFY_EMAIL_TTL_MS, sendEmailVerificationEmail } from "@/lib/email";
+import { logError } from "@/lib/log.server";
 import { hashPassword } from "@/lib/password";
 import { generateToken } from "@/lib/tokens";
 import { signupSchema } from "@/lib/validators";
@@ -47,7 +48,10 @@ export async function POST(req: Request) {
       userId: user.id,
     });
   } catch (err) {
-    console.error("[signup] Failed to send verification email", err);
+    await logError(err, {
+      context: { feature: "signup.send-verification", userId: user.id },
+      userId: user.id,
+    });
   }
 
   return NextResponse.json({ ok: true, requiresVerification: true }, { status: 201 });

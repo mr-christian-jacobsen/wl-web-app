@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 
 import { prisma } from "@/lib/db";
+import { logError, logWarning } from "@/lib/log.server";
 import { getSmtpConfigForSend } from "@/lib/system-settings";
 import { renderFallback, type TemplateVars } from "@/lib/templates";
 import { renderTemplateByKey } from "@/lib/templates.server";
@@ -88,7 +89,9 @@ async function attemptSmtpDelivery(opts: {
     return { status: "sent", error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[email] SMTP send failed; logging instead:", err);
+    await logError(err, {
+      context: { feature: "smtp.send", to: opts.to, subject: opts.subject },
+    });
     console.log(`[email:fallback] to=${opts.to} subject="${opts.subject}"\n${opts.text}`);
     return { status: "failed", error: message };
   }
@@ -128,8 +131,11 @@ async function send(opts: SendInput) {
       },
       select: { id: true },
     })
-    .catch((err) => {
-      console.error("[email] Failed to create audit row", err);
+    .catch(async (err) => {
+      await logWarning("Email audit row create failed", {
+        cause: err,
+        context: { feature: "email.audit.create", to: opts.to, type: opts.type },
+      });
       return null;
     });
 
@@ -146,8 +152,11 @@ async function send(opts: SendInput) {
         where: { id: log.id },
         data: { status: outcome.status, error: outcome.error },
       })
-      .catch((err) => {
-        console.error("[email] Failed to update audit row", err);
+      .catch(async (err) => {
+        await logWarning("Email audit row update failed", {
+          cause: err,
+          context: { feature: "email.audit.update", auditId: log.id },
+        });
       });
   }
 }

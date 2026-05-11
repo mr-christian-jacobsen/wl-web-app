@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { EMAIL_CHANGE_TTL_MS, sendEmailChangeConfirmation } from "@/lib/email";
+import { logError } from "@/lib/log.server";
 import { generateToken } from "@/lib/tokens";
 import { updateProfileSchema } from "@/lib/validators";
 
@@ -110,7 +111,10 @@ export async function PATCH(req: Request) {
         userId: me.id,
       });
     } catch (err) {
-      console.error("[profile] Failed to send email-change confirmation", err);
+      await logError(err, {
+        context: { feature: "profile.email-change", userId: me.id, newEmail },
+        userId: me.id,
+      });
     }
 
     pendingEmail = newEmail;

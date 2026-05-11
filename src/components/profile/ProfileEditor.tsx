@@ -6,7 +6,10 @@ import { useRef, useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
 import { AvatarCropper } from "@/components/profile/AvatarCropper";
+import { ThemeToggle } from "@/components/profile/ThemeToggle";
 import { flagEmoji, formatLocaleLabel } from "@/lib/locales";
+
+type ThemeMode = "light" | "dark" | "system";
 
 type User = {
   id: string;
@@ -14,6 +17,7 @@ type User = {
   name: string;
   avatarUrl: string | null;
   languageId: string | null;
+  themePreference: string | null;
 };
 
 export type LanguageOption = {
@@ -70,6 +74,11 @@ export function ProfileEditor({
   const router = useRouter();
   const { update } = useSession();
 
+  const initialTheme: ThemeMode =
+    user.themePreference === "light" || user.themePreference === "dark"
+      ? user.themePreference
+      : "system";
+
   return (
     <div className="flex flex-col gap-6">
       <AvatarSection user={user} onUpdated={(url) => update({ avatarUrl: url })} />
@@ -81,6 +90,12 @@ export function ProfileEditor({
         }}
       />
       <LanguageSection user={user} languages={languages} onUpdated={() => router.refresh()} />
+      <Section
+        title="Appearance"
+        description="Choose how the app looks. Saved to your account, so it follows you on every device."
+      >
+        <ThemeToggle initial={initialTheme} />
+      </Section>
       <PasswordSection />
       <Section title="Sign out">
         <button

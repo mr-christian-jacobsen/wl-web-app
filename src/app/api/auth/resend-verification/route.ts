@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { VERIFY_EMAIL_TTL_MS, sendEmailVerificationEmail } from "@/lib/email";
+import { logError } from "@/lib/log.server";
 import { generateToken } from "@/lib/tokens";
 import { resendVerificationSchema } from "@/lib/validators";
 
@@ -32,7 +33,10 @@ export async function POST(req: Request) {
         userId: user.id,
       });
     } catch (err) {
-      console.error("[resend-verification] Failed to send", err);
+      await logError(err, {
+        context: { feature: "resend-verification", userId: user.id },
+        userId: user.id,
+      });
     }
   }
 

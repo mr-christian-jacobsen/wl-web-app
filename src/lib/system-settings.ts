@@ -11,6 +11,17 @@ export const SETTING_KEYS = {
   smtpUser: "smtp.user",
   smtpPass: "smtp.pass",
   smtpFrom: "smtp.from",
+  logRetentionErrorDays: "log.retention.errorDays",
+  logRetentionWarningDays: "log.retention.warningDays",
+  logRetentionInfoDays: "log.retention.infoDays",
+  logLastPrunedAt: "log.lastPrunedAt",
+} as const;
+
+/** Built-in defaults used when no override row exists in SystemSetting. */
+export const DEFAULT_LOG_RETENTION_DAYS = {
+  error: 90,
+  warning: 30,
+  info: 7,
 } as const;
 
 const SECRET_KEYS = new Set<string>([SETTING_KEYS.smtpPass]);
@@ -21,6 +32,10 @@ const ENV_FALLBACK: Record<string, string | undefined> = {
   [SETTING_KEYS.smtpUser]: process.env.SMTP_USER,
   [SETTING_KEYS.smtpPass]: process.env.SMTP_PASS,
   [SETTING_KEYS.smtpFrom]: process.env.SMTP_FROM,
+  [SETTING_KEYS.logRetentionErrorDays]: undefined,
+  [SETTING_KEYS.logRetentionWarningDays]: undefined,
+  [SETTING_KEYS.logRetentionInfoDays]: undefined,
+  [SETTING_KEYS.logLastPrunedAt]: undefined,
 };
 
 /** Resolve a setting: DB value if a row exists (even if blank), else env. */
@@ -74,6 +89,31 @@ export async function getSmtpSettings(): Promise<SmtpSettings> {
     user: s[SETTING_KEYS.smtpUser],
     hasPassword: !!s[SETTING_KEYS.smtpPass],
     from: s[SETTING_KEYS.smtpFrom],
+  };
+}
+
+export type LogRetention = {
+  /** Whole days; 0 means "never prune this level". */
+  error: number;
+  warning: number;
+  info: number;
+};
+
+/** Read configured retention windows; falls back to DEFAULT_LOG_RETENTION_DAYS. */
+export async function getLogRetention(): Promise<LogRetention> {
+  const s = await getSettings([
+    SETTING_KEYS.logRetentionErrorDays,
+    SETTING_KEYS.logRetentionWarningDays,
+    SETTING_KEYS.logRetentionInfoDays,
+  ]);
+  const parse = (v: string | undefined, fallback: number) => {
+    const n = v === undefined ? NaN : Number(v);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+  };
+  return {
+    error: parse(s[SETTING_KEYS.logRetentionErrorDays], DEFAULT_LOG_RETENTION_DAYS.error),
+    warning: parse(s[SETTING_KEYS.logRetentionWarningDays], DEFAULT_LOG_RETENTION_DAYS.warning),
+    info: parse(s[SETTING_KEYS.logRetentionInfoDays], DEFAULT_LOG_RETENTION_DAYS.info),
   };
 }
 

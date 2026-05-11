@@ -1,10 +1,20 @@
 import { PrismaClient } from "@prisma/client";
 
 /**
- * Fields whose value must never be re-cased or trimmed: hashes have an exact
- * binary identity that any normalisation would corrupt.
+ * Fields whose value must never be re-cased or trimmed:
+ * - hashes have an exact binary identity that any normalisation would corrupt;
+ * - log payloads (stack traces, JSON context, fingerprints) carry meaningful
+ *   leading whitespace and embedded newlines that .trim() would mutilate.
  */
-const NEVER_NORMALIZE = new Set(["passwordHash", "tokenHash", "ipHash"]);
+const NEVER_NORMALIZE = new Set([
+  "passwordHash",
+  "tokenHash",
+  "ipHash",
+  "fingerprint",
+  "stack",
+  "message",
+  "context",
+]);
 
 /** Field names whose value should be lower-cased after trimming. */
 const LOWERCASE_FIELDS = new Set(["email", "newEmail", "oldEmail"]);

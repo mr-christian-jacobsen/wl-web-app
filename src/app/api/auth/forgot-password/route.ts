@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { logError } from "@/lib/log.server";
 import { generateToken } from "@/lib/tokens";
 import { forgotPasswordSchema } from "@/lib/validators";
 
@@ -29,7 +30,10 @@ export async function POST(req: Request) {
         userId: user.id,
       });
     } catch (err) {
-      console.error("Failed to send reset email", err);
+      await logError(err, {
+        context: { feature: "forgot-password", userId: user.id },
+        userId: user.id,
+      });
     }
   }
 
