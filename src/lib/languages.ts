@@ -8,10 +8,11 @@ import { DEFAULT_LANGUAGE } from "@/lib/locales";
  *
  * The unique `(countryCode, languageCode)` constraint means this is a
  * cheap upsert; we never overwrite the row, only set `isDefault = true`
- * if it had drifted to false.
+ * if it had drifted to false. Returns the row's `id` so callers that
+ * need it (e.g. the email-templates page) don't need a second query.
  */
-export async function ensureDefaultLanguage(): Promise<void> {
-  await prisma.language.upsert({
+export async function ensureDefaultLanguage(): Promise<string> {
+  const row = await prisma.language.upsert({
     where: {
       countryCode_languageCode: {
         countryCode: DEFAULT_LANGUAGE.countryCode,
@@ -24,5 +25,16 @@ export async function ensureDefaultLanguage(): Promise<void> {
       isDefault: true,
     },
     update: { isDefault: true },
+    select: { id: true },
   });
+  return row.id;
+}
+
+/**
+ * Convenience wrapper around `ensureDefaultLanguage` that's used by the
+ * email-template render path — same lazy seeding, but the function
+ * name reads more naturally at call sites that just need the id.
+ */
+export async function getDefaultLanguageId(): Promise<string> {
+  return ensureDefaultLanguage();
 }

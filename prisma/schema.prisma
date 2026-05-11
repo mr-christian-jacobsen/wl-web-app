@@ -23,6 +23,14 @@ model User {
   avatarMime      String?
   isSuperAdmin    Boolean   @default(false)
   emailVerifiedAt DateTime?
+  /// Preferred language for emails and other user-facing content. Null
+  /// means "follow the system default" — the email pipeline resolves
+  /// templates via `(key, user.languageId ?? defaultId) → (key, defaultId)
+  /// → hardcoded fallback`. Languages are managed in
+  /// `/super-admin/languages`; deleting one nulls this column rather than
+  /// the user row.
+  languageId      String?
+  language        Language? @relation(fields: [languageId], references: [id], onDelete: SetNull)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -30,6 +38,8 @@ model User {
   verificationTokens EmailVerificationToken[]
   usageSessions      UsageSession[]
   emails             Email[]
+
+  @@index([languageId])
 }
 
 /// Admin-defined ordered survey. Steps live in a separate table so they
@@ -169,9 +179,20 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+/// Admin-defined override of one transactional email per (key, language)
+/// pair. Keys are listed in `KNOWN_TEMPLATES` (`src/lib/templates.ts`);
+/// rendering falls through `(key, requestedLanguage) → (key, default) →
+/// hardcoded fallback` in `renderTemplateByKey`. The send pipeline
+/// currently always asks for the default language — once a runtime
+/// language source exists (User.language column, request locale, …),
+/// the third arg of `renderTemplateByKey` plugs straight in.
 model EmailTemplate {
   id          String   @id @default(cuid())
-  key         String   @unique
+  key         String
+  /// Language this row applies to. Required — every template row is
+  /// for some specific locale, including the seeded default.
+  languageId  String
+  language    Language @relation(fields: [languageId], references: [id], onDelete: Restrict)
   name        String
   subject     String
   bodyText    String
@@ -179,6 +200,9 @@ model EmailTemplate {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@unique([key, languageId])
+  @@index([languageId])
 }
 
 model EmailVerificationToken {
@@ -252,6 +276,9 @@ model Language {
   /// flag — the DELETE handler refuses any row where this is true.
   isDefault    Boolean  @default(false)
   createdAt    DateTime @default(now())
+
+  emailTemplates EmailTemplate[]
+  users          User[]
 
   @@unique([countryCode, languageCode])
   @@index([countryCode])

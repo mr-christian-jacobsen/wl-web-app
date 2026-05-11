@@ -12,6 +12,7 @@ const SAFE_SELECT = {
   email: true,
   name: true,
   isSuperAdmin: true,
+  languageId: true,
   createdAt: true,
 } as const;
 
@@ -39,6 +40,18 @@ export async function POST(req: Request) {
     );
   }
 
+  // Verify the language id exists upfront — keeps invalid FKs out and
+  // surfaces a friendly error instead of a P2003 from Prisma.
+  if (typeof parsed.data.languageId === "string") {
+    const exists = await prisma.language.findUnique({
+      where: { id: parsed.data.languageId },
+      select: { id: true },
+    });
+    if (!exists) {
+      return NextResponse.json({ error: "Unknown language" }, { status: 400 });
+    }
+  }
+
   const passwordHash = await hashPassword(parsed.data.password);
   let user;
   try {
@@ -48,6 +61,9 @@ export async function POST(req: Request) {
         name: parsed.data.name,
         passwordHash,
         isSuperAdmin: parsed.data.isSuperAdmin ?? false,
+        ...(parsed.data.languageId
+          ? { language: { connect: { id: parsed.data.languageId } } }
+          : {}),
       },
       select: SAFE_SELECT,
     });
@@ -59,10 +75,14 @@ export async function POST(req: Request) {
   }
 
   try {
+    // The invitation email is rendered in the user's preferred language
+    // when one was set on creation, otherwise the default-language
+    // template (or hardcoded fallback) is used.
     await sendUserInvitationEmail(user.email, {
       name: user.name,
       password: parsed.data.password,
       userId: user.id,
+      languageId: user.languageId,
     });
   } catch (err) {
     console.error(`[super-admin] Failed to send welcome email to ${user.email}:`, err);

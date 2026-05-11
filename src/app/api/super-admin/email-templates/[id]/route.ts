@@ -30,7 +30,22 @@ export async function PATCH(
   if (parsed.data.description !== undefined) data.description = parsed.data.description;
 
   try {
-    const template = await prisma.emailTemplate.update({ where: { id }, data });
+    const template = await prisma.emailTemplate.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        key: true,
+        languageId: true,
+        name: true,
+        subject: true,
+        bodyText: true,
+        bodyHtml: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
     return NextResponse.json({ template });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {

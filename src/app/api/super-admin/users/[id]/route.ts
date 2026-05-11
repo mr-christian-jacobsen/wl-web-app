@@ -11,6 +11,7 @@ const SAFE_SELECT = {
   email: true,
   name: true,
   isSuperAdmin: true,
+  languageId: true,
   createdAt: true,
 } as const;
 
@@ -53,11 +54,29 @@ export async function PATCH(
     }
   }
 
+  // Reject unknown languageId before we touch the table — same approach
+  // as in /api/profile so admin and self-serve forms behave the same.
+  if (typeof parsed.data.languageId === "string") {
+    const exists = await prisma.language.findUnique({
+      where: { id: parsed.data.languageId },
+      select: { id: true },
+    });
+    if (!exists) {
+      return NextResponse.json({ error: "Unknown language" }, { status: 400 });
+    }
+  }
+
   const data: Prisma.UserUpdateInput = {};
   if (parsed.data.name !== undefined) data.name = parsed.data.name;
   if (parsed.data.email !== undefined) data.email = parsed.data.email;
   if (parsed.data.isSuperAdmin !== undefined) data.isSuperAdmin = parsed.data.isSuperAdmin;
   if (parsed.data.password !== undefined) data.passwordHash = await hashPassword(parsed.data.password);
+  if (parsed.data.languageId !== undefined) {
+    data.language =
+      parsed.data.languageId === null
+        ? { disconnect: true }
+        : { connect: { id: parsed.data.languageId } };
+  }
 
   try {
     const user = await prisma.user.update({ where: { id }, data, select: SAFE_SELECT });

@@ -49,6 +49,12 @@ describe("validators", () => {
 
   it("update-profile requires at least one field", () => {
     expect(updateProfileSchema.safeParse({ name: "foo" }).success).toBe(true);
+    expect(updateProfileSchema.safeParse({ languageId: "x" }).success).toBe(true);
+    // null clears the preference
+    expect(updateProfileSchema.safeParse({ languageId: null }).success).toBe(true);
+    // empty string is rejected so empty form fields can't accidentally
+    // null the preference — clients must explicitly send `null`.
+    expect(updateProfileSchema.safeParse({ languageId: "" }).success).toBe(false);
     expect(updateProfileSchema.safeParse({}).success).toBe(false);
   });
 
@@ -74,15 +80,48 @@ describe("validators", () => {
     expect(adminUpdateUserSchema.safeParse({ name: "x" }).success).toBe(true);
     expect(adminUpdateUserSchema.safeParse({ isSuperAdmin: true }).success).toBe(true);
     expect(adminUpdateUserSchema.safeParse({ password: "abcdefgh" }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({ languageId: "lang-1" }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({ languageId: null }).success).toBe(true);
+    expect(adminUpdateUserSchema.safeParse({ languageId: "" }).success).toBe(false);
     expect(adminUpdateUserSchema.safeParse({}).success).toBe(false);
     expect(
       adminUpdateUserSchema.safeParse({ email: "not-email", isSuperAdmin: true }).success,
     ).toBe(false);
   });
 
+  it("admin-create-user accepts optional languageId", () => {
+    const r = adminCreateUserSchema.parse({
+      email: "a@b.co",
+      name: "X",
+      password: "abcdefgh",
+      languageId: "lang-1",
+    });
+    expect(r.languageId).toBe("lang-1");
+    // null is accepted; means "no preference"
+    expect(
+      adminCreateUserSchema.safeParse({
+        email: "a@b.co",
+        name: "X",
+        password: "abcdefgh",
+        languageId: null,
+      }).success,
+    ).toBe(true);
+    // empty string is rejected so empty form fields can't smuggle in
+    // an invalid id
+    expect(
+      adminCreateUserSchema.safeParse({
+        email: "a@b.co",
+        name: "X",
+        password: "abcdefgh",
+        languageId: "",
+      }).success,
+    ).toBe(false);
+  });
+
   it("create-email-template enforces snake_case key + required fields", () => {
     const ok = createEmailTemplateSchema.safeParse({
       key: "user_invitation",
+      languageId: "lang-id-1",
       name: "User invitation",
       subject: "Welcome {{name}}",
       bodyText: "Hi {{name}}",
@@ -92,6 +131,7 @@ describe("validators", () => {
     expect(
       createEmailTemplateSchema.safeParse({
         key: "Bad-Key",
+        languageId: "lang-id-1",
         name: "x",
         subject: "y",
         bodyText: "z",
@@ -101,9 +141,20 @@ describe("validators", () => {
     expect(
       createEmailTemplateSchema.safeParse({
         key: "user_invitation",
+        languageId: "lang-id-1",
         name: "x",
         subject: "y",
         bodyText: "",
+      }).success,
+    ).toBe(false);
+
+    // languageId is required
+    expect(
+      createEmailTemplateSchema.safeParse({
+        key: "user_invitation",
+        name: "x",
+        subject: "y",
+        bodyText: "z",
       }).success,
     ).toBe(false);
   });

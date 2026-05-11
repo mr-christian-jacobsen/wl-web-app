@@ -46,14 +46,30 @@ export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export const resendVerificationSchema = z.object({ email: emailSchema });
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
 
+/**
+ * `languageId` accepts:
+ *   - a non-empty string → set the user's preferred language
+ *   - `null` → clear the preference (use the system default)
+ *   - `undefined` (i.e. omitted) → leave the column untouched
+ *
+ * The route handler tells these three apart with `'languageId' in data`
+ * + `data.languageId` value. Server validates that the id exists in the
+ * Language table.
+ */
 export const updateProfileSchema = z
   .object({
     name: nameSchema.optional(),
     email: emailSchema.optional(),
+    languageId: z
+      .union([z.string().trim().min(1), z.null()])
+      .optional(),
   })
-  .refine((d) => d.name !== undefined || d.email !== undefined, {
-    message: "Provide at least one field to update",
-  });
+  .refine(
+    (d) => d.name !== undefined || d.email !== undefined || d.languageId !== undefined,
+    {
+      message: "Provide at least one field to update",
+    },
+  );
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 export const changePasswordSchema = z
@@ -72,6 +88,13 @@ export const adminCreateUserSchema = z.object({
   name: nameSchema,
   password: passwordSchema,
   isSuperAdmin: z.boolean().optional().default(false),
+  /**
+   * Optional preferred language. Same `string | null | undefined` shape
+   * as `updateProfileSchema.languageId` — null/undefined both mean
+   * "leave unset" at create time, which makes the user follow the
+   * system default. The route validates the id exists in the DB.
+   */
+  languageId: z.union([z.string().trim().min(1), z.null()]).optional(),
 });
 export type AdminCreateUserInput = z.infer<typeof adminCreateUserSchema>;
 
@@ -81,6 +104,7 @@ export const adminUpdateUserSchema = z
     email: emailSchema.optional(),
     password: passwordSchema.optional(),
     isSuperAdmin: z.boolean().optional(),
+    languageId: z.union([z.string().trim().min(1), z.null()]).optional(),
   })
   .refine((d) => Object.values(d).some((v) => v !== undefined), {
     message: "Provide at least one field to update",
@@ -96,6 +120,12 @@ export const templateKeySchema = z
 
 export const createEmailTemplateSchema = z.object({
   key: templateKeySchema,
+  /**
+   * Required — every template row belongs to a specific Language. The
+   * client picks one from the languages list rendered server-side; the
+   * server still validates the id exists in the DB before insert.
+   */
+  languageId: z.string().trim().min(1, "Language is required"),
   name: z.string().trim().min(1, "Name is required").max(120),
   subject: z.string().trim().min(1, "Subject is required").max(255),
   bodyText: z.string().min(1, "Plain-text body is required"),
