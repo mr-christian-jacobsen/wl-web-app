@@ -1,5 +1,6 @@
 "use client";
 
+import { StepTypeIcon } from "@/components/super-admin/StepTypeIcon";
 import { STEP_TYPES, type StepType } from "@/lib/step-types";
 
 /**
@@ -41,13 +42,7 @@ export function StepTypePicker({
                 : "border-slate-300 bg-white text-slate-700 hover:border-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800")
             }
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={t.icon}
-              alt=""
-              aria-hidden="true"
-              className={tile + " object-contain"}
-            />
+            <StepTypeIcon src={t.icon} className={tile} />
             <span className="font-medium">{t.label}</span>
           </button>
         );
