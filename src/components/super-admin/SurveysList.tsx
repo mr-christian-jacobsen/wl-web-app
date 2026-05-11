@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { useTranslation } from "@/components/TranslationsProvider";
 
 type SurveySummary = {
   id: string;
@@ -18,6 +19,7 @@ type SurveySummary = {
 };
 
 export function SurveysList({ initial }: { initial: SurveySummary[] }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [surveys, setSurveys] = useState(initial);
   const [creating, setCreating] = useState(false);
@@ -37,7 +39,7 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      setError(body?.error ?? "Could not create survey");
+      setError(body?.error ?? t("super_admin.surveys.create_failed"));
       setPending(false);
       return;
     }
@@ -49,12 +51,12 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
   }
 
   async function onDelete(id: string, name: string) {
-    if (!confirm(`Delete "${name}" and all its steps?`)) return;
+    if (!confirm(t("super_admin.survey_editor.delete_confirm", { name }))) return;
     setDeletingId(id);
     const res = await fetch(`/api/super-admin/surveys/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      alert(body?.error ?? "Could not delete survey");
+      alert(body?.error ?? t("super_admin.survey_editor.delete_failed"));
       setDeletingId(null);
       return;
     }
@@ -67,8 +69,8 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-600 dark:text-slate-400">
           {surveys.length === 0
-            ? "No surveys yet."
-            : `${surveys.length} survey${surveys.length === 1 ? "" : "s"}`}
+            ? t("super_admin.surveys.empty")
+            : t("super_admin.users.total", { n: surveys.length })}
         </p>
         {!creating && (
           <button
@@ -79,7 +81,7 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
             }}
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
           >
-            New survey
+            {t("super_admin.surveys.new")}
           </button>
         )}
       </div>
@@ -89,7 +91,7 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
           onSubmit={onCreate}
           className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
         >
-          <Field label="Name" htmlFor="survey-name">
+          <Field label={t("super_admin.surveys.dialog.name")} htmlFor="survey-name">
             <input
               id="survey-name"
               name="name"
@@ -99,7 +101,10 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
               className={inputClass}
             />
           </Field>
-          <Field label="Description (optional)" htmlFor="survey-description">
+          <Field
+            label={t("super_admin.surveys.dialog.description")}
+            htmlFor="survey-description"
+          >
             <textarea
               id="survey-description"
               name="description"
@@ -111,7 +116,9 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button type="submit" disabled={pending} className={buttonClass + " sm:w-auto"}>
-              {pending ? "Creating…" : "Create survey"}
+              {pending
+                ? t("admin.action.saving")
+                : t("super_admin.surveys.dialog.create")}
             </button>
             <button
               type="button"
@@ -119,7 +126,7 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
               disabled={pending}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              Cancel
+              {t("admin.action.cancel")}
             </button>
           </div>
         </form>
@@ -127,7 +134,7 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
 
       {surveys.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500 dark:border-slate-700">
-          Click <span className="font-medium">New survey</span> to get started.
+          {t("super_admin.surveys.empty")}
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -150,7 +157,7 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
                   </span>
                 )}
                 <span className="text-xs text-slate-500">
-                  {survey.stepCount} step{survey.stepCount === 1 ? "" : "s"} · updated{" "}
+                  {survey.stepCount} {t("super_admin.surveys.col.steps").toLowerCase()} · updated{" "}
                   {new Date(survey.updatedAt).toLocaleDateString()}
                 </span>
               </Link>
@@ -159,7 +166,7 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
                   href={`/super-admin/surveys/${survey.id}`}
                   className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
                 >
-                  Edit
+                  {t("admin.action.edit")}
                 </Link>
                 <button
                   type="button"
@@ -167,7 +174,9 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
                   disabled={deletingId === survey.id}
                   className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
                 >
-                  {deletingId === survey.id ? "Deleting…" : "Delete"}
+                  {deletingId === survey.id
+                    ? t("admin.action.deleting")
+                    : t("admin.action.delete")}
                 </button>
               </div>
             </li>
@@ -179,13 +188,14 @@ export function SurveysList({ initial }: { initial: SurveySummary[] }) {
 }
 
 function PublishedBadge({ published }: { published: boolean }) {
+  const { t } = useTranslation();
   return published ? (
     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
-      Live
+      {t("super_admin.surveys.status.live")}
     </span>
   ) : (
     <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-      Draft
+      {t("super_admin.surveys.status.draft")}
     </span>
   );
 }

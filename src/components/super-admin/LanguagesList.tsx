@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { useTranslation } from "@/components/TranslationsProvider";
 import { flagEmoji, formatLocaleLabel, getLanguage } from "@/lib/locales";
 
 export type LanguageRow = {
@@ -26,6 +27,7 @@ export function LanguagesList({
   initial: LanguageRow[];
   countries: CountryOption[];
 }) {
+  const { t } = useTranslation();
   const [rows, setRows] = useState<LanguageRow[]>(initial);
   const [creating, setCreating] = useState(false);
   const [pending, setPending] = useState(false);
@@ -74,11 +76,11 @@ export function LanguagesList({
   async function onCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!country) {
-      setError("Pick a country");
+      setError(t("super_admin.languages.error.pick_country"));
       return;
     }
     if (!effectiveLanguage) {
-      setError("Pick a language");
+      setError(t("super_admin.languages.error.pick_language"));
       return;
     }
     setPending(true);
@@ -93,7 +95,7 @@ export function LanguagesList({
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      setError(body?.error ?? "Could not add language");
+      setError(body?.error ?? t("super_admin.languages.error.add_failed"));
       setPending(false);
       return;
     }
@@ -105,12 +107,12 @@ export function LanguagesList({
 
   async function onDelete(row: LanguageRow) {
     const label = formatLocaleLabel(row.countryCode, row.languageCode);
-    if (!confirm(`Delete ${label}?`)) return;
+    if (!confirm(t("super_admin.languages.delete_confirm", { label }))) return;
     setDeletingId(row.id);
     const res = await fetch(`/api/super-admin/languages/${row.id}`, { method: "DELETE" });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      alert(body?.error ?? "Could not delete language");
+      alert(body?.error ?? t("super_admin.languages.error.delete_failed"));
       setDeletingId(null);
       return;
     }
@@ -123,8 +125,11 @@ export function LanguagesList({
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-600 dark:text-slate-400">
           {rows.length === 0
-            ? "No languages yet."
-            : `${rows.length} language${rows.length === 1 ? "" : "s"}`}
+            ? t("super_admin.languages.empty")
+            : t("super_admin.languages.count", {
+                n: rows.length,
+                plural: rows.length === 1 ? "" : "s",
+              })}
         </p>
         {!creating && (
           <button
@@ -132,7 +137,7 @@ export function LanguagesList({
             onClick={openForm}
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
           >
-            New language
+            {t("super_admin.languages.new")}
           </button>
         )}
       </div>
@@ -142,7 +147,7 @@ export function LanguagesList({
           onSubmit={onCreate}
           className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
         >
-          <Field label="Country" htmlFor="lang-country">
+          <Field label={t("super_admin.languages.field.country")} htmlFor="lang-country">
             <select
               id="lang-country"
               required
@@ -155,7 +160,9 @@ export function LanguagesList({
               }}
               className={inputClass}
             >
-              <option value="">Select a country…</option>
+              <option value="">
+                {t("super_admin.languages.field.country_placeholder")}
+              </option>
               {sortedCountries.map((c) => (
                 <option key={c.code} value={c.code}>
                   {flagEmoji(c.code)} {c.name}
@@ -165,7 +172,7 @@ export function LanguagesList({
           </Field>
 
           {country && country.languages.length > 1 ? (
-            <Field label="Language" htmlFor="lang-language">
+            <Field label={t("super_admin.languages.field.language")} htmlFor="lang-language">
               <select
                 id="lang-language"
                 required
@@ -176,7 +183,9 @@ export function LanguagesList({
                 }}
                 className={inputClass}
               >
-                <option value="">Select a language…</option>
+                <option value="">
+                  {t("super_admin.languages.field.language_placeholder")}
+                </option>
                 {country.languages.map((code) => (
                   <option key={code} value={code}>
                     {getLanguage(code)?.name ?? code}
@@ -186,7 +195,8 @@ export function LanguagesList({
             </Field>
           ) : country && autoLanguage ? (
             <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-              Language: <span className="font-medium">{getLanguage(autoLanguage)?.name}</span>{" "}
+              {t("super_admin.languages.auto_lang_prefix")}{" "}
+              <span className="font-medium">{getLanguage(autoLanguage)?.name}</span>{" "}
               <span className="text-xs uppercase tracking-wide text-slate-500">
                 {country.code}-{autoLanguage}
               </span>
@@ -197,7 +207,9 @@ export function LanguagesList({
 
           <div className="flex gap-2">
             <button type="submit" disabled={pending} className={buttonClass + " sm:w-auto"}>
-              {pending ? "Adding…" : "Add language"}
+              {pending
+                ? t("super_admin.languages.adding")
+                : t("super_admin.languages.add")}
             </button>
             <button
               type="button"
@@ -205,7 +217,7 @@ export function LanguagesList({
               disabled={pending}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              Cancel
+              {t("admin.action.cancel")}
             </button>
           </div>
         </form>
@@ -228,7 +240,7 @@ export function LanguagesList({
                   </span>
                   {row.isDefault && (
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
-                      Default
+                      {t("super_admin.languages.default_badge")}
                     </span>
                   )}
                 </p>
@@ -241,9 +253,9 @@ export function LanguagesList({
               {row.isDefault ? (
                 <span
                   className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-400 dark:border-slate-700"
-                  title="The default language cannot be deleted"
+                  title={t("super_admin.languages.locked_title")}
                 >
-                  Locked
+                  {t("super_admin.languages.locked_label")}
                 </span>
               ) : (
                 <button
@@ -252,7 +264,9 @@ export function LanguagesList({
                   disabled={deletingId === row.id}
                   className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
                 >
-                  {deletingId === row.id ? "Deleting…" : "Delete"}
+                  {deletingId === row.id
+                    ? t("admin.action.deleting")
+                    : t("admin.action.delete")}
                 </button>
               )}
             </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { useTranslation } from "@/components/TranslationsProvider";
 import { parseOptions } from "@/lib/step-types";
 
 type Step = {
@@ -36,6 +37,7 @@ type Status =
  * dry-run without writing rows.
  */
 export function SurveyForm({ survey, mode = "live" }: { survey: Survey; mode?: Mode }) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<Record<string, string | string[]>>(() =>
     Object.fromEntries(
       survey.steps.map((s) => [s.id, s.type === "multi_choice" ? [] : ""]),
@@ -65,7 +67,7 @@ export function SurveyForm({ survey, mode = "live" }: { survey: Survey; mode?: M
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      setStatus({ kind: "err", msg: body?.error ?? "Could not submit" });
+      setStatus({ kind: "err", msg: body?.error ?? t("public_survey.error_generic") });
       return;
     }
     setStatus({ kind: "ok" });
@@ -75,13 +77,13 @@ export function SurveyForm({ survey, mode = "live" }: { survey: Survey; mode?: M
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center dark:border-emerald-900 dark:bg-emerald-950">
         <p className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
-          {mode === "preview" ? "Preview submission accepted" : "Thanks — your response was recorded."}
+          {t("public_survey.thanks_title")}
         </p>
-        {mode === "preview" && (
-          <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-200">
-            Nothing was actually saved. Reload to fill the form again.
-          </p>
-        )}
+        <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-200">
+          {mode === "preview"
+            ? t("public_survey.preview_chip")
+            : t("public_survey.thanks_body")}
+        </p>
       </div>
     );
   }
@@ -103,7 +105,9 @@ export function SurveyForm({ survey, mode = "live" }: { survey: Survey; mode?: M
           disabled={status.kind === "submitting"}
           className={buttonClass + " sm:w-auto"}
         >
-          {status.kind === "submitting" ? "Submitting…" : "Submit"}
+          {status.kind === "submitting"
+            ? t("public_survey.submitting")
+            : t("public_survey.submit")}
         </button>
       </div>
     </form>
@@ -119,6 +123,7 @@ function StepField({
   value: string | string[];
   onChange: (v: string | string[]) => void;
 }) {
+  const { t } = useTranslation();
   const id = `step-${step.id}`;
   const label = (
     <span>
@@ -234,8 +239,8 @@ function StepField({
         {step.notes && <Notes text={step.notes} />}
         <div role="radiogroup" className="flex gap-4">
           {[
-            { v: "yes", label: "Yes" },
-            { v: "no", label: "No" },
+            { v: "yes", label: t("public_survey.field.yes") },
+            { v: "no", label: t("public_survey.field.no") },
           ].map(({ v, label }) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input

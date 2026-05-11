@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { useTranslation } from "@/components/TranslationsProvider";
 
 export type LogRetentionView = {
   error: number;
@@ -23,6 +24,7 @@ type PruneState =
   | { kind: "error"; message: string };
 
 export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
+  const { t } = useTranslation();
   const [retention, setRetention] = useState(initial);
   const [save, setSave] = useState<SaveState>({ kind: "idle" });
   const [prune, setPrune] = useState<PruneState>({ kind: "idle" });
@@ -44,7 +46,7 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      setSave({ kind: "error", message: body?.error ?? "Save failed" });
+      setSave({ kind: "error", message: body?.error ?? t("super_admin.log_retention.save_failed") });
       return;
     }
     const body = (await res.json()) as { retention: LogRetentionView };
@@ -59,7 +61,7 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      setPrune({ kind: "error", message: body?.error ?? "Prune failed" });
+      setPrune({ kind: "error", message: body?.error ?? t("super_admin.log_retention.prune_failed") });
       return;
     }
     const body = (await res.json()) as {
@@ -74,16 +76,14 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
       className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
     >
       <div>
-        <h2 className="text-base font-semibold">Log retention</h2>
+        <h2 className="text-base font-semibold">{t("super_admin.log_retention.title")}</h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Whole days. <code className="font-mono text-xs">0</code> means &quot;never prune
-          this level&quot;. The auto-prune runs at most once per 24h, triggered
-          opportunistically when a log entry is written.
+          {t("super_admin.log_retention.description")}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Errors (days)" htmlFor="errorDays">
+        <Field label={t("super_admin.log_retention.field.error_days")} htmlFor="errorDays">
           <input
             id="errorDays"
             name="errorDays"
@@ -95,7 +95,7 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
             className={inputClass}
           />
         </Field>
-        <Field label="Warnings (days)" htmlFor="warningDays">
+        <Field label={t("super_admin.log_retention.field.warning_days")} htmlFor="warningDays">
           <input
             id="warningDays"
             name="warningDays"
@@ -107,7 +107,7 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
             className={inputClass}
           />
         </Field>
-        <Field label="Info (days)" htmlFor="infoDays">
+        <Field label={t("super_admin.log_retention.field.info_days")} htmlFor="infoDays">
           <input
             id="infoDays"
             name="infoDays"
@@ -128,7 +128,7 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
       )}
       {save.kind === "saved" && (
         <p className="rounded-md bg-emerald-50 p-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
-          Saved.
+          {t("super_admin.log_retention.saved")}
         </p>
       )}
 
@@ -139,10 +139,14 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
           disabled={prune.kind === "running"}
           className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
         >
-          {prune.kind === "running" ? "Pruning…" : "Prune now"}
+          {prune.kind === "running"
+            ? t("super_admin.log_retention.pruning")
+            : t("super_admin.log_retention.prune")}
         </button>
         <button type="submit" disabled={save.kind === "saving"} className={buttonClass + " w-auto"}>
-          {save.kind === "saving" ? "Saving…" : "Save retention"}
+          {save.kind === "saving"
+            ? t("admin.action.saving")
+            : t("super_admin.log_retention.save")}
         </button>
       </div>
 
@@ -153,8 +157,13 @@ export function LogRetentionForm({ initial }: { initial: LogRetentionView }) {
       )}
       {prune.kind === "result" && (
         <p className="rounded-md bg-slate-100 p-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-          Pruned {prune.total} row{prune.total === 1 ? "" : "s"} (errors: {prune.error}, warnings:{" "}
-          {prune.warning}, info: {prune.info}).
+          {t("super_admin.log_retention.prune_result", {
+            total: prune.total,
+            plural: prune.total === 1 ? "" : "s",
+            error: prune.error,
+            warning: prune.warning,
+            info: prune.info,
+          })}
         </p>
       )}
     </form>

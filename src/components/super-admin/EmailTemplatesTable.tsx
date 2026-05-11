@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
+import { useTranslation } from "@/components/TranslationsProvider";
 import { flagEmoji, formatLocaleLabel } from "@/lib/locales";
 import {
   KNOWN_TEMPLATES,
@@ -82,6 +83,9 @@ export function EmailTemplatesTable({
   languages: LanguageRow[];
   defaultLanguageId: string;
 }) {
+  // Aliased to `tr` so the `t` parameter name (used in callbacks below
+  // for an EmailTemplate row) doesn't shadow the translation function.
+  const { t: tr } = useTranslation();
   const router = useRouter();
   const [templates, setTemplates] = useState(initialTemplates);
   const [mode, setMode] = useState<Mode>({ kind: "idle" });
@@ -180,15 +184,13 @@ export function EmailTemplatesTable({
   }
 
   async function onDelete(t: EmailTemplate) {
-    const lang = languagesById.get(t.languageId);
-    const label = lang ? formatLocaleLabel(lang.countryCode, lang.languageCode) : t.languageId;
-    if (!confirm(`Delete "${t.key}" (${label})? This cannot be undone.`)) return;
+    if (!confirm(tr("super_admin.email_templates.delete_confirm"))) return;
     setError(null);
     startTransition(async () => {
       const res = await fetch(`/api/super-admin/email-templates/${t.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? "Delete failed");
+        setError(body?.error ?? tr("super_admin.email_templates.delete_failed"));
         return;
       }
       refresh(templates.filter((x) => x.id !== t.id));
@@ -204,7 +206,9 @@ export function EmailTemplatesTable({
       )}
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-base font-semibold">Templates the app uses</h2>
+        <h2 className="text-base font-semibold">
+          {tr("super_admin.email_templates.title")}
+        </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           These keys are referenced from code. Each entry can have one row per language; the
           send pipeline picks the requested language, falling back to the default and finally
@@ -323,8 +327,12 @@ export function EmailTemplatesTable({
       </div>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">All templates</h2>
-        <p className="text-sm text-slate-500">{templates.length} total</p>
+        <h2 className="text-lg font-semibold">
+          {tr("super_admin.email_templates.title")}
+        </h2>
+        <p className="text-sm text-slate-500">
+          {tr("super_admin.users.total", { n: templates.length })}
+        </p>
       </div>
 
       <div className="flex justify-end">

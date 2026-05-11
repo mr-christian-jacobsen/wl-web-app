@@ -6,6 +6,7 @@ import { ensureDefaultLanguage, getDefaultLanguageId } from "@/lib/languages";
 import {
   KNOWN_TRANSLATIONS,
   translate,
+  type TranslateParams,
   type TranslationDict,
   type TranslationKeyDef,
 } from "@/lib/translations";
@@ -227,11 +228,13 @@ export const getServerTranslations = cache(async (): Promise<TranslationDict> =>
 
 /**
  * Server-component equivalent of the `useTranslation` hook —
- * returns a synchronous `t(key)` ready to call inside JSX.
+ * returns a synchronous `t(key, params?)` ready to call inside JSX.
  */
-export async function getServerT(): Promise<(key: string) => string> {
+export async function getServerT(): Promise<
+  (key: string, params?: TranslateParams) => string
+> {
   const dict = await getServerTranslations();
-  return (key: string) => translate(dict, key);
+  return (key: string, params?: TranslateParams) => translate(dict, key, params);
 }
 
 /**

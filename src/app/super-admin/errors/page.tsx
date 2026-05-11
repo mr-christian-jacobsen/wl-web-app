@@ -1,16 +1,17 @@
 import { prisma } from "@/lib/db";
 import { LOG_LEVELS, LOG_SOURCES } from "@/lib/log";
 import { formatAdminTimestamp } from "@/lib/format";
+import { getServerT } from "@/lib/translations.server";
 
 import { LogEntriesTable } from "@/components/super-admin/LogEntriesTable";
 
-const FILTER_OPTIONS: Array<{ label: string; level?: string; source?: string }> = [
-  { label: "All" },
-  { label: "Errors", level: "error" },
-  { label: "Warnings", level: "warning" },
-  { label: "Info", level: "info" },
-  { label: "Server", source: "server" },
-  { label: "Client", source: "client" },
+const FILTER_OPTIONS: Array<{ labelKey: string; level?: string; source?: string }> = [
+  { labelKey: "super_admin.errors.filter.all" },
+  { labelKey: "super_admin.errors.filter.errors", level: "error" },
+  { labelKey: "super_admin.errors.filter.warnings", level: "warning" },
+  { labelKey: "super_admin.errors.filter.info", level: "info" },
+  { labelKey: "super_admin.errors.filter.server", source: "server" },
+  { labelKey: "super_admin.errors.filter.client", source: "client" },
 ];
 
 export default async function SuperAdminErrorsPage({
@@ -19,6 +20,7 @@ export default async function SuperAdminErrorsPage({
   searchParams: Promise<{ level?: string; source?: string }>;
 }) {
   const params = await searchParams;
+  const t = await getServerT();
   const where: { level?: string; source?: string } = {};
   if (params.level && (LOG_LEVELS as readonly string[]).includes(params.level)) {
     where.level = params.level;
@@ -51,8 +53,10 @@ export default async function SuperAdminErrorsPage({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">Logs</h2>
-        <p className="text-sm text-slate-500">Showing {entries.length} most recent</p>
+        <h2 className="text-lg font-semibold">{t("super_admin.errors.title")}</h2>
+        <p className="text-sm text-slate-500">
+          {t("super_admin.errors.showing", { n: entries.length })}
+        </p>
       </div>
 
       <nav className="flex flex-wrap gap-2 text-xs">
@@ -66,7 +70,7 @@ export default async function SuperAdminErrorsPage({
             (params.source ?? null) === (opt.source ?? null);
           return (
             <a
-              key={opt.label}
+              key={opt.labelKey}
               href={`/super-admin/errors${href}`}
               className={
                 "rounded-md border px-3 py-1.5 font-medium transition-colors " +
@@ -75,7 +79,7 @@ export default async function SuperAdminErrorsPage({
                   : "border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800")
               }
             >
-              {opt.label}
+              {t(opt.labelKey)}
             </a>
           );
         })}

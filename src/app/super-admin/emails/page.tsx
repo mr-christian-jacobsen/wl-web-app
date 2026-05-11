@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/db";
 import { formatEmailSentAt } from "@/lib/format";
+import { getServerT } from "@/lib/translations.server";
 
 import { EmailsTable } from "@/components/super-admin/EmailsTable";
 
 export default async function SuperAdminEmailsPage() {
+  const t = await getServerT();
   const emails = await prisma.email.findMany({
     orderBy: { sentAt: "desc" },
     take: 200,
@@ -13,8 +15,10 @@ export default async function SuperAdminEmailsPage() {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Emails</h2>
-        <p className="text-sm text-slate-500">Showing {emails.length} most recent</p>
+        <h2 className="text-lg font-semibold">{t("super_admin.emails.title")}</h2>
+        <p className="text-sm text-slate-500">
+          {t("super_admin.emails.showing", { n: emails.length })}
+        </p>
       </div>
 
       <EmailsTable

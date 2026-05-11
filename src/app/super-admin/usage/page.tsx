@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getServerT } from "@/lib/translations.server";
 
 const DAY_MS = 24 * 60 * 60_000;
 
@@ -29,6 +30,7 @@ function durationLabel(start: Date, end: Date) {
 }
 
 export default async function SuperAdminUsagePage() {
+  const t = await getServerT();
   const since7d = new Date(Date.now() - 7 * DAY_MS);
   const since24h = new Date(Date.now() - DAY_MS);
 
@@ -48,22 +50,22 @@ export default async function SuperAdminUsagePage() {
   return (
     <section className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Sessions (last 24h)" value={total24h} />
-        <Stat label="Sessions (last 7d)" value={total7d} />
-        <Stat label="Active users (last 7d)" value={distinctUsers7d} />
+        <Stat label={t("super_admin.usage.stat.sessions_24h")} value={total24h} />
+        <Stat label={t("super_admin.usage.stat.sessions_7d")} value={total7d} />
+        <Stat label={t("super_admin.usage.stat.active_7d")} value={distinctUsers7d} />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
             <tr>
-              <th className="px-4 py-3">User</th>
-              <th className="px-4 py-3">Started</th>
-              <th className="px-4 py-3">Last active</th>
-              <th className="px-4 py-3">Duration</th>
-              <th className="px-4 py-3">Device</th>
-              <th className="px-4 py-3">Screen</th>
-              <th className="px-4 py-3">Locale</th>
+              <th className="px-4 py-3">{t("super_admin.usage.col.user")}</th>
+              <th className="px-4 py-3">{t("super_admin.usage.col.started")}</th>
+              <th className="px-4 py-3">{t("super_admin.usage.col.last_active")}</th>
+              <th className="px-4 py-3">{t("super_admin.usage.col.duration")}</th>
+              <th className="px-4 py-3">{t("super_admin.usage.col.device")}</th>
+              <th className="px-4 py-3">{t("super_admin.usage.col.screen")}</th>
+              <th className="px-4 py-3">{t("super_admin.usage.col.locale")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -87,7 +89,8 @@ export default async function SuperAdminUsagePage() {
                   {s.screenWidth && s.screenHeight ? `${s.screenWidth}×${s.screenHeight}` : "—"}
                   {s.viewportWidth && s.viewportHeight ? (
                     <div className="text-xs text-slate-500">
-                      vp {s.viewportWidth}×{s.viewportHeight}
+                      {t("super_admin.usage.viewport_prefix")} {s.viewportWidth}×
+                      {s.viewportHeight}
                     </div>
                   ) : null}
                 </td>
@@ -100,7 +103,7 @@ export default async function SuperAdminUsagePage() {
             {recent.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                  No usage recorded yet.
+                  {t("super_admin.usage.empty")}
                 </td>
               </tr>
             )}

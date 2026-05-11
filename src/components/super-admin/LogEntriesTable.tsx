@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { useTranslation } from "@/components/TranslationsProvider";
+
 export type LogEntryRow = {
   id: string;
   level: string;
@@ -45,6 +47,7 @@ const SOURCE_BADGE: Record<string, string> = {
 };
 
 export function LogEntriesTable({ entries: initial }: { entries: LogEntryRow[] }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [entries, setEntries] = useState(initial);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -53,13 +56,13 @@ export function LogEntriesTable({ entries: initial }: { entries: LogEntryRow[] }
   const selected = selectedId ? entries.find((e) => e.id === selectedId) ?? null : null;
 
   function onDelete(entry: LogEntryRow) {
-    if (!confirm(`Delete this log entry? (${entry.count}× occurrences)`)) return;
+    if (!confirm(t("super_admin.errors.delete_confirm", { count: entry.count }))) return;
     setError(null);
     startTransition(async () => {
       const res = await fetch(`/api/super-admin/errors/${entry.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? "Delete failed");
+        setError(body?.error ?? t("super_admin.errors.delete_failed"));
         return;
       }
       setEntries((prev) => prev.filter((e) => e.id !== entry.id));
@@ -79,12 +82,12 @@ export function LogEntriesTable({ entries: initial }: { entries: LogEntryRow[] }
         <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
             <tr>
-              <th className="px-4 py-3">Last seen</th>
-              <th className="px-4 py-3">Level</th>
-              <th className="px-4 py-3">Source</th>
-              <th className="px-4 py-3">Message</th>
-              <th className="px-4 py-3">Count</th>
-              <th className="px-4 py-3">User</th>
+              <th className="px-4 py-3">{t("super_admin.errors.col.last_seen")}</th>
+              <th className="px-4 py-3">{t("super_admin.errors.col.level")}</th>
+              <th className="px-4 py-3">{t("super_admin.errors.col.source")}</th>
+              <th className="px-4 py-3">{t("super_admin.errors.col.message")}</th>
+              <th className="px-4 py-3">{t("super_admin.errors.col.count")}</th>
+              <th className="px-4 py-3">{t("super_admin.errors.col.user")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -101,14 +104,14 @@ export function LogEntriesTable({ entries: initial }: { entries: LogEntryRow[] }
                   <span
                     className={`rounded px-2 py-0.5 text-xs font-medium ${LEVEL_BADGE[e.level] ?? LEVEL_BADGE.info}`}
                   >
-                    {e.level}
+                    {t(`super_admin.errors.level.${e.level}`)}
                   </span>
                 </td>
                 <td className="px-4 py-3">
                   <span
                     className={`rounded px-2 py-0.5 text-xs ${SOURCE_BADGE[e.source] ?? ""}`}
                   >
-                    {e.source}
+                    {t(`super_admin.errors.source.${e.source}`)}
                   </span>
                 </td>
                 <td className="max-w-md px-4 py-3 text-slate-700 dark:text-slate-200">
@@ -138,7 +141,7 @@ export function LogEntriesTable({ entries: initial }: { entries: LogEntryRow[] }
             {entries.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                  No log entries.
+                  {t("super_admin.errors.empty")}
                 </td>
               </tr>
             )}
@@ -169,6 +172,7 @@ function LogEntryDialog({
   onClose: () => void;
   onDelete: (entry: LogEntryRow) => void;
 }) {
+  const { t } = useTranslation();
   const prettyContext = entry.context ? prettifyJson(entry.context) : null;
 
   return (
@@ -185,16 +189,16 @@ function LogEntryDialog({
               <span
                 className={`rounded px-2 py-0.5 text-xs font-medium ${LEVEL_BADGE[entry.level] ?? LEVEL_BADGE.info}`}
               >
-                {entry.level}
+                {t(`super_admin.errors.level.${entry.level}`)}
               </span>
               <span
                 className={`rounded px-2 py-0.5 text-xs ${SOURCE_BADGE[entry.source] ?? ""}`}
               >
-                {entry.source}
+                {t(`super_admin.errors.source.${entry.source}`)}
               </span>
               {entry.count > 1 && (
                 <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold dark:bg-slate-800">
-                  {entry.count}× occurrences
+                  {t("super_admin.errors.dialog.occurrences", { count: entry.count })}
                 </span>
               )}
             </div>
@@ -212,26 +216,32 @@ function LogEntryDialog({
               disabled={pending}
               className="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
             >
-              Delete
+              {t("admin.action.delete")}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              Close
+              {t("admin.action.close")}
             </button>
           </div>
         </div>
 
         <dl className="grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-800 dark:bg-slate-950 sm:grid-cols-[max-content_1fr]">
-          <dt className="font-semibold text-slate-500">First seen</dt>
+          <dt className="font-semibold text-slate-500">
+            {t("super_admin.errors.dialog.first_seen")}
+          </dt>
           <dd>{entry.firstOccurredAtDisplay}</dd>
-          <dt className="font-semibold text-slate-500">Last seen</dt>
+          <dt className="font-semibold text-slate-500">
+            {t("super_admin.errors.dialog.last_seen")}
+          </dt>
           <dd>{entry.lastOccurredAtDisplay}</dd>
           {entry.method && (
             <>
-              <dt className="font-semibold text-slate-500">Request</dt>
+              <dt className="font-semibold text-slate-500">
+                {t("super_admin.errors.dialog.request")}
+              </dt>
               <dd className="break-all font-mono">
                 {entry.method} {entry.path ?? ""}
                 {entry.statusCode ? ` → ${entry.statusCode}` : ""}
@@ -240,48 +250,62 @@ function LogEntryDialog({
           )}
           {entry.url && (
             <>
-              <dt className="font-semibold text-slate-500">URL</dt>
+              <dt className="font-semibold text-slate-500">
+                {t("super_admin.errors.dialog.url")}
+              </dt>
               <dd className="break-all">{entry.url}</dd>
             </>
           )}
           {entry.userAgent && (
             <>
-              <dt className="font-semibold text-slate-500">User agent</dt>
+              <dt className="font-semibold text-slate-500">
+                {t("super_admin.errors.dialog.user_agent")}
+              </dt>
               <dd className="break-all">{entry.userAgent}</dd>
             </>
           )}
           {entry.user && (
             <>
-              <dt className="font-semibold text-slate-500">User</dt>
+              <dt className="font-semibold text-slate-500">
+                {t("super_admin.errors.dialog.user")}
+              </dt>
               <dd className="break-all">{entry.user.email}</dd>
             </>
           )}
           {entry.session && (
             <>
-              <dt className="font-semibold text-slate-500">Device</dt>
+              <dt className="font-semibold text-slate-500">
+                {t("super_admin.errors.dialog.device")}
+              </dt>
               <dd>{describeSession(entry.session)}</dd>
               {entry.session.timezone && (
                 <>
-                  <dt className="font-semibold text-slate-500">Timezone</dt>
+                  <dt className="font-semibold text-slate-500">
+                    {t("super_admin.errors.dialog.timezone")}
+                  </dt>
                   <dd>{entry.session.timezone}</dd>
                 </>
               )}
               {entry.session.language && (
                 <>
-                  <dt className="font-semibold text-slate-500">Language</dt>
+                  <dt className="font-semibold text-slate-500">
+                    {t("super_admin.errors.dialog.language")}
+                  </dt>
                   <dd>{entry.session.language}</dd>
                 </>
               )}
             </>
           )}
-          <dt className="font-semibold text-slate-500">Fingerprint</dt>
+          <dt className="font-semibold text-slate-500">
+            {t("super_admin.errors.dialog.fingerprint")}
+          </dt>
           <dd className="break-all font-mono">{entry.fingerprint}</dd>
         </dl>
 
         {entry.stack && (
           <details className="rounded-md border border-slate-200 dark:border-slate-800" open>
             <summary className="cursor-pointer bg-slate-50 px-3 py-2 text-xs font-semibold dark:bg-slate-950">
-              Stack trace
+              {t("super_admin.errors.dialog.stack_trace")}
             </summary>
             <pre className="max-h-72 overflow-auto whitespace-pre-wrap p-3 font-mono text-xs leading-relaxed">
               {entry.stack}
@@ -292,7 +316,7 @@ function LogEntryDialog({
         {prettyContext && (
           <details className="rounded-md border border-slate-200 dark:border-slate-800">
             <summary className="cursor-pointer bg-slate-50 px-3 py-2 text-xs font-semibold dark:bg-slate-950">
-              Context
+              {t("super_admin.errors.dialog.context")}
             </summary>
             <pre className="max-h-72 overflow-auto whitespace-pre-wrap p-3 font-mono text-xs leading-relaxed">
               {prettyContext}
