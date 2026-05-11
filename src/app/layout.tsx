@@ -56,7 +56,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className={htmlClass} suppressHydrationWarning>
-      <body>
+      {/*
+        suppressHydrationWarning on <body> tolerates attributes injected by
+        browser extensions (ColorZilla's `cz-shortcut-listen`, Grammarly,
+        MetaMask, LastPass, …) that the server can't anticipate. The flag is
+        element-local: only attributes on <body> itself become tolerant —
+        every child still hydrates strictly.
+      */}
+      <body suppressHydrationWarning>
         {bootScript && (
           // First child of <body> so it runs synchronously before any content
           // is rendered below — eliminates the flash-of-wrong-theme on hard
