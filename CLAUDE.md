@@ -152,6 +152,32 @@ its templates first. (The `User.language` relation is
 `onDelete: SetNull` — users with that preference simply revert to
 the default.)
 
+## OpenAPI / Swagger docs
+
+Every `/api/**` route is documented through a hand-registered OpenAPI spec, served at `/api/openapi` (JSON body) and rendered by Swagger UI at `/super-admin/api-docs`. Both are admin-gated (the layout guard plus `requireSuperAdmin()` on the spec endpoint).
+
+The spec is assembled in `src/lib/openapi/`:
+
+- `registry.ts` — single `OpenAPIRegistry`, common error/ok response schemas, security schemes, tag IDs.
+- `schemas.ts` — DTO shapes (User, Survey, EmailTemplate, …) registered as `components.schemas`.
+- `register-validators.ts` — registers every Zod schema from `src/lib/validators.ts` under a stable name so request bodies appear as named refs in the spec.
+- `routes/*.ts` — one file per area; each calls `registry.registerPath(...)` per `(method, path)` pair.
+- `spec.ts` — calls every `registerXxxRoutes()` (idempotent), then emits the OpenAPI v3.0 document.
+
+### Adding a new endpoint
+
+1. Implement the route as usual under `src/app/api/...`.
+2. Open the matching `src/lib/openapi/routes/<area>.ts` (or add a new one and import it from `spec.ts`) and add a `registry.registerPath` block with:
+   - `method`, `path` (use `{name}` for params, not `[name]`),
+   - `security: [{ sessionCookie: [] }]` if auth is required,
+   - request body referencing the same Zod schema the handler uses,
+   - response shapes for 200/201 plus the relevant error codes.
+3. Run `pnpm test` — `tests/unit/openapi-coverage.test.ts` walks `src/app/api/**/route.ts` and fails if any new `(method, path)` is missing from the spec, or if the spec documents an endpoint that no longer exists.
+
+Excluded paths: `/api/auth/[...nextauth]` (NextAuth-internal) and `/api/openapi` itself.
+
+"Try it out" works directly from the docs page because Swagger UI is configured with a `requestInterceptor` that forwards the session cookie — same-origin authenticated calls just succeed.
+
 ## Scripts
 
 - `pnpm promote-admin <email>` — set `isSuperAdmin = true` on a user.
