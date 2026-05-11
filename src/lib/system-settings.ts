@@ -15,6 +15,15 @@ export const SETTING_KEYS = {
   logRetentionWarningDays: "log.retention.warningDays",
   logRetentionInfoDays: "log.retention.infoDays",
   logLastPrunedAt: "log.lastPrunedAt",
+  // Auto-translate provider config (see src/lib/translate-provider.ts).
+  // Provider is "anthropic" or "openai"; api keys are stored as secrets;
+  // model values are free-form strings so admins can flip between e.g.
+  // claude-haiku-4-5 and gpt-4o-mini without a code change.
+  translateProvider: "translate.provider",
+  translateAnthropicApiKey: "translate.anthropic.apiKey",
+  translateAnthropicModel: "translate.anthropic.model",
+  translateOpenaiApiKey: "translate.openai.apiKey",
+  translateOpenaiModel: "translate.openai.model",
 } as const;
 
 /** Built-in defaults used when no override row exists in SystemSetting. */
@@ -24,7 +33,17 @@ export const DEFAULT_LOG_RETENTION_DAYS = {
   info: 7,
 } as const;
 
-const SECRET_KEYS = new Set<string>([SETTING_KEYS.smtpPass]);
+export const DEFAULT_TRANSLATE_PROVIDER = "anthropic" as const;
+export const DEFAULT_TRANSLATE_MODELS = {
+  anthropic: "claude-haiku-4-5",
+  openai: "gpt-4o-mini",
+} as const;
+
+const SECRET_KEYS = new Set<string>([
+  SETTING_KEYS.smtpPass,
+  SETTING_KEYS.translateAnthropicApiKey,
+  SETTING_KEYS.translateOpenaiApiKey,
+]);
 
 const ENV_FALLBACK: Record<string, string | undefined> = {
   [SETTING_KEYS.smtpHost]: process.env.SMTP_HOST,
@@ -36,6 +55,11 @@ const ENV_FALLBACK: Record<string, string | undefined> = {
   [SETTING_KEYS.logRetentionWarningDays]: undefined,
   [SETTING_KEYS.logRetentionInfoDays]: undefined,
   [SETTING_KEYS.logLastPrunedAt]: undefined,
+  [SETTING_KEYS.translateProvider]: process.env.TRANSLATE_PROVIDER,
+  [SETTING_KEYS.translateAnthropicApiKey]: process.env.ANTHROPIC_API_KEY,
+  [SETTING_KEYS.translateAnthropicModel]: process.env.ANTHROPIC_MODEL,
+  [SETTING_KEYS.translateOpenaiApiKey]: process.env.OPENAI_API_KEY,
+  [SETTING_KEYS.translateOpenaiModel]: process.env.OPENAI_MODEL,
 };
 
 /** Resolve a setting: DB value if a row exists (even if blank), else env. */
@@ -114,6 +138,85 @@ export async function getLogRetention(): Promise<LogRetention> {
     error: parse(s[SETTING_KEYS.logRetentionErrorDays], DEFAULT_LOG_RETENTION_DAYS.error),
     warning: parse(s[SETTING_KEYS.logRetentionWarningDays], DEFAULT_LOG_RETENTION_DAYS.warning),
     info: parse(s[SETTING_KEYS.logRetentionInfoDays], DEFAULT_LOG_RETENTION_DAYS.info),
+  };
+}
+
+export type TranslateProvider = "anthropic" | "openai";
+
+export type TranslateSettings = {
+  provider: TranslateProvider;
+  anthropic: { hasApiKey: boolean; model: string };
+  openai: { hasApiKey: boolean; model: string };
+};
+
+/** UI-safe view of the translate-provider configuration. Secrets reduced to presence flags. */
+export async function getTranslateSettings(): Promise<TranslateSettings> {
+  const s = await getSettings([
+    SETTING_KEYS.translateProvider,
+    SETTING_KEYS.translateAnthropicApiKey,
+    SETTING_KEYS.translateAnthropicModel,
+    SETTING_KEYS.translateOpenaiApiKey,
+    SETTING_KEYS.translateOpenaiModel,
+  ]);
+  const providerRaw = (s[SETTING_KEYS.translateProvider] ?? DEFAULT_TRANSLATE_PROVIDER).toLowerCase();
+  const provider: TranslateProvider =
+    providerRaw === "openai" ? "openai" : "anthropic";
+  return {
+    provider,
+    anthropic: {
+      hasApiKey: !!s[SETTING_KEYS.translateAnthropicApiKey],
+      model:
+        s[SETTING_KEYS.translateAnthropicModel]?.trim() || DEFAULT_TRANSLATE_MODELS.anthropic,
+    },
+    openai: {
+      hasApiKey: !!s[SETTING_KEYS.translateOpenaiApiKey],
+      model:
+        s[SETTING_KEYS.translateOpenaiModel]?.trim() || DEFAULT_TRANSLATE_MODELS.openai,
+    },
+  };
+}
+
+/**
+ * Read the resolved provider config including the API key — server-only,
+ * for the actual translate call. Returns null when no key is available
+ * for the configured provider so callers can surface a friendly error
+ * rather than letting the SDK throw.
+ */
+export async function getTranslateConfigForSend(): Promise<
+  | {
+      provider: TranslateProvider;
+      apiKey: string;
+      model: string;
+    }
+  | null
+> {
+  const s = await getSettings([
+    SETTING_KEYS.translateProvider,
+    SETTING_KEYS.translateAnthropicApiKey,
+    SETTING_KEYS.translateAnthropicModel,
+    SETTING_KEYS.translateOpenaiApiKey,
+    SETTING_KEYS.translateOpenaiModel,
+  ]);
+  const providerRaw = (s[SETTING_KEYS.translateProvider] ?? DEFAULT_TRANSLATE_PROVIDER).toLowerCase();
+  const provider: TranslateProvider =
+    providerRaw === "openai" ? "openai" : "anthropic";
+
+  if (provider === "anthropic") {
+    const apiKey = s[SETTING_KEYS.translateAnthropicApiKey]?.trim();
+    if (!apiKey) return null;
+    return {
+      provider,
+      apiKey,
+      model:
+        s[SETTING_KEYS.translateAnthropicModel]?.trim() || DEFAULT_TRANSLATE_MODELS.anthropic,
+    };
+  }
+  const apiKey = s[SETTING_KEYS.translateOpenaiApiKey]?.trim();
+  if (!apiKey) return null;
+  return {
+    provider,
+    apiKey,
+    model: s[SETTING_KEYS.translateOpenaiModel]?.trim() || DEFAULT_TRANSLATE_MODELS.openai,
   };
 }
 

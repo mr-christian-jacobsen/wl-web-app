@@ -605,6 +605,114 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     name: "Translations — empty-state message after a search",
     defaultValue: "No translation keys match your search.",
   },
+
+  // ─── Auto-translate (per-row + bulk) ─────────────────────────────────────
+  {
+    key: "super_admin.translations.auto.heading",
+    name: "Translations — auto-translate toolbar heading",
+    description: "Shown above the bulk auto-translate buttons.",
+    defaultValue: "Auto-translate every missing value into this language:",
+  },
+  {
+    key: "super_admin.translations.auto.missing_review",
+    name: "Translations — 'Translate missing (review)' bulk button",
+    description: "Fills empty rows with suggestions; admin reviews and saves manually.",
+    defaultValue: "Translate missing (review)",
+  },
+  {
+    key: "super_admin.translations.auto.missing_commit",
+    name: "Translations — 'Translate missing & save' bulk button",
+    description: "Translates and persists in one step with source=auto.",
+    defaultValue: "Translate missing & save",
+  },
+  {
+    key: "super_admin.translations.auto.translate_row",
+    name: "Translations — per-row 'Translate' button",
+    defaultValue: "Translate",
+  },
+  {
+    key: "super_admin.translations.auto.translating",
+    name: "Translations — per-row Translate button while translating",
+    defaultValue: "Translating…",
+  },
+  {
+    key: "super_admin.translations.auto.running",
+    name: "Translations — bulk button label while translating",
+    defaultValue: "Translating…",
+  },
+  {
+    key: "super_admin.translations.auto.review_ok",
+    name: "Translations — toast after bulk review-mode succeeds",
+    defaultValue: "Suggestions filled in. Review and click Save on each row.",
+  },
+  {
+    key: "super_admin.translations.auto.commit_ok",
+    name: "Translations — toast after bulk commit-mode succeeds",
+    defaultValue: "Translated and saved.",
+  },
+  {
+    key: "super_admin.translations.auto.suggestion_badge",
+    name: "Translations — chip on a row showing an unsaved AI suggestion",
+    defaultValue: "🤖 auto-translated (review)",
+  },
+  {
+    key: "super_admin.translations.auto.saved_badge",
+    name: "Translations — chip on a row whose saved value came from auto-translate",
+    defaultValue: "🤖 auto",
+  },
+
+  // ─── Translate-provider settings form ────────────────────────────────────
+  {
+    key: "super_admin.translate_provider.title",
+    name: "System settings — translate-provider section title",
+    defaultValue: "Auto-translate provider",
+  },
+  {
+    key: "super_admin.translate_provider.description",
+    name: "System settings — translate-provider section description",
+    defaultValue:
+      "Which AI service translates UI strings when an admin clicks the auto-translate buttons. API keys are stored encrypted; leave a key field blank to keep the existing value.",
+  },
+  {
+    key: "super_admin.translate_provider.field.provider",
+    name: "Translate provider — 'Provider' field label",
+    defaultValue: "Provider",
+  },
+  {
+    key: "super_admin.translate_provider.field.model",
+    name: "Translate provider — 'Model' field label",
+    defaultValue: "Model",
+  },
+  {
+    key: "super_admin.translate_provider.field.api_key",
+    name: "Translate provider — 'API key' field label",
+    defaultValue: "API key",
+  },
+  {
+    key: "super_admin.translate_provider.api_key.set_placeholder",
+    name: "Translate provider — placeholder when a key IS configured",
+    defaultValue: "Configured — leave blank to keep",
+  },
+  {
+    key: "super_admin.translate_provider.api_key.unset_placeholder",
+    name: "Translate provider — placeholder when no key is configured",
+    defaultValue: "Not set",
+  },
+  {
+    key: "super_admin.translate_provider.clear_button",
+    name: "Translate provider — 'Clear key' button",
+    defaultValue: "Clear key",
+  },
+  {
+    key: "super_admin.translate_provider.clear_confirm",
+    name: "Translate provider — confirm prompt before clearing a key",
+    defaultValue: "Clear the stored API key? Auto-translate will stop working until you re-add one.",
+  },
+  {
+    key: "super_admin.translate_provider.save",
+    name: "Translate provider — Save button",
+    defaultValue: "Save provider settings",
+  },
 ];
 
 const TRANSLATIONS_BY_KEY = new Map(KNOWN_TRANSLATIONS.map((t) => [t.key, t]));

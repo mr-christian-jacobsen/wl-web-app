@@ -157,6 +157,8 @@ export async function listTranslationsForAdmin(languageId: string): Promise<
     description: string | null;
     translationId: string | null;
     value: string | null;
+    /** "human" | "auto" | null when no row exists yet. */
+    source: string | null;
     defaultValue: string;
     defaultLanguageValue: string | null;
   }>
@@ -170,7 +172,7 @@ export async function listTranslationsForAdmin(languageId: string): Promise<
         where: {
           languageId: { in: [languageId, defaultLanguageId] },
         },
-        select: { id: true, value: true, languageId: true },
+        select: { id: true, value: true, languageId: true, source: true },
       },
     },
   });
@@ -190,20 +192,13 @@ export async function listTranslationsForAdmin(languageId: string): Promise<
       description: k.description,
       translationId: target?.id ?? null,
       value: target?.value ?? null,
+      source: target?.source ?? null,
       defaultValue: defaultsByKey.get(k.key)?.defaultValue ?? k.key,
       defaultLanguageValue: inDefault?.value ?? null,
     };
   });
 }
 
-/**
- * Upsert a translation row for `(translationKeyId, languageId)` with
- * the supplied value. Returns the resulting row so the caller can
- * confirm what landed. Translations are never deleted via this path
- * — the admin UI doesn't expose deletion — but storing an empty
- * string effectively returns the key to its fallback behaviour, so
- * the editor allows that.
- */
 /**
  * Resolve the current request's preferred language id from the auth
  * session. Wrapped in React `cache` so the lookup is shared across
@@ -239,11 +234,26 @@ export async function getServerT(): Promise<(key: string) => string> {
   return (key: string) => translate(dict, key);
 }
 
+/**
+ * Upsert a translation row for `(translationKeyId, languageId)` with
+ * the supplied value + provenance.
+ *
+ * `source` defaults to "human" so any call from the manual editor flips
+ * a previously machine-generated value back to human-reviewed without
+ * extra ceremony. Pass `"auto"` from the auto-translate path so the UI
+ * can flag those rows for review.
+ *
+ * Translations are never deleted via this path — the admin UI doesn't
+ * expose deletion — but storing an empty string effectively returns the
+ * key to its fallback behaviour, so the editor allows that.
+ */
 export async function setTranslation(opts: {
   translationKeyId: string;
   languageId: string;
   value: string;
-}): Promise<{ id: string; value: string }> {
+  source?: "human" | "auto";
+}): Promise<{ id: string; value: string; source: string }> {
+  const source = opts.source ?? "human";
   const row = await prisma.translation.upsert({
     where: {
       translationKeyId_languageId: {
@@ -255,11 +265,13 @@ export async function setTranslation(opts: {
       translationKeyId: opts.translationKeyId,
       languageId: opts.languageId,
       value: opts.value,
+      source,
     },
     update: {
       value: opts.value,
+      source,
     },
-    select: { id: true, value: true },
+    select: { id: true, value: true, source: true },
   });
   return row;
 }

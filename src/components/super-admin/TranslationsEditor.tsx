@@ -14,6 +14,8 @@ export type TranslationRowView = {
   translationId: string | null;
   /** Current value for the selected language, or null when no row yet. */
   value: string | null;
+  /** "human" | "auto" | null when no row exists yet. */
+  source: string | null;
   /** Code-side English default, used as the placeholder when value is empty. */
   defaultValue: string;
   /** Value in the site's default language, when different from the selected one. */
@@ -26,6 +28,12 @@ type LanguageView = {
   languageCode: string;
   isDefault: boolean;
 };
+
+type BulkStatus =
+  | { kind: "idle" }
+  | { kind: "running"; mode: "review" | "commit" }
+  | { kind: "ok"; mode: "review" | "commit"; count: number }
+  | { kind: "err"; msg: string };
 
 export function TranslationsEditor({
   languages,
@@ -43,6 +51,9 @@ export function TranslationsEditor({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [rows, setRows] = useState(initialRows);
+  // Pending suggestions, keyed by TranslationKey id, that the user has
+  // not yet saved. Per-row textareas show these when present.
+  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
   const [syncStatus, setSyncStatus] = useState<
     | { kind: "idle" }
@@ -50,6 +61,9 @@ export function TranslationsEditor({
     | { kind: "ok"; upserted: number; defaultsInserted: number }
     | { kind: "err"; msg: string }
   >({ kind: "idle" });
+  const [bulkStatus, setBulkStatus] = useState<BulkStatus>({ kind: "idle" });
+
+  const isDefaultLanguage = selectedLanguageId === defaultLanguageId;
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -74,9 +88,7 @@ export function TranslationsEditor({
 
   async function onSync() {
     setSyncStatus({ kind: "running" });
-    const res = await fetch("/api/super-admin/translations/sync", {
-      method: "POST",
-    });
+    const res = await fetch("/api/super-admin/translations/sync", { method: "POST" });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
       setSyncStatus({ kind: "err", msg: body?.error ?? "Sync failed" });
@@ -84,8 +96,49 @@ export function TranslationsEditor({
     }
     const body = (await res.json()) as { upserted: number; defaultsInserted: number };
     setSyncStatus({ kind: "ok", ...body });
-    // Refresh server props so any newly-added keys show up.
     router.refresh();
+  }
+
+  // Bulk: "Translate all missing" — either to review (commit=false,
+  // suggestions fill textareas) or auto-commit (commit=true, source="auto"
+  // rows land in the DB and the row table re-rendered to match).
+  async function onBulkTranslate(mode: "review" | "commit") {
+    setBulkStatus({ kind: "running", mode });
+    const res = await fetch("/api/super-admin/translations/auto-translate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        languageId: selectedLanguageId,
+        scope: "missing",
+        commit: mode === "commit",
+      }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      setBulkStatus({ kind: "err", msg: body?.error ?? "Auto-translate failed" });
+      return;
+    }
+    const body = (await res.json()) as {
+      items: Array<{ keyId: string; key: string; translation: string }>;
+    };
+
+    if (mode === "review") {
+      // Fill textareas; admin reviews and clicks Save row-by-row.
+      setSuggestions((cur) => {
+        const next = { ...cur };
+        for (const it of body.items) next[it.keyId] = it.translation;
+        return next;
+      });
+    } else {
+      // Already committed server-side. Update local row state.
+      setRows((cur) =>
+        cur.map((r) => {
+          const hit = body.items.find((it) => it.keyId === r.keyId);
+          return hit ? { ...r, value: hit.translation, source: "auto" } : r;
+        }),
+      );
+    }
+    setBulkStatus({ kind: "ok", mode, count: body.items.length });
   }
 
   return (
@@ -139,6 +192,50 @@ export function TranslationsEditor({
         </div>
       </div>
 
+      {!isDefaultLanguage && (
+        <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-700 dark:text-slate-200">
+            {t("super_admin.translations.auto.heading")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onBulkTranslate("review")}
+              disabled={bulkStatus.kind === "running"}
+              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              {bulkStatus.kind === "running" && bulkStatus.mode === "review"
+                ? t("super_admin.translations.auto.running")
+                : t("super_admin.translations.auto.missing_review")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onBulkTranslate("commit")}
+              disabled={bulkStatus.kind === "running"}
+              className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            >
+              {bulkStatus.kind === "running" && bulkStatus.mode === "commit"
+                ? t("super_admin.translations.auto.running")
+                : t("super_admin.translations.auto.missing_commit")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {bulkStatus.kind === "ok" && (
+        <p className="rounded-md bg-emerald-50 p-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
+          {bulkStatus.mode === "review"
+            ? t("super_admin.translations.auto.review_ok")
+            : t("super_admin.translations.auto.commit_ok")}{" "}
+          ({bulkStatus.count})
+        </p>
+      )}
+      {bulkStatus.kind === "err" && (
+        <p className="rounded-md bg-red-50 p-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">
+          {bulkStatus.msg}
+        </p>
+      )}
+
       {syncStatus.kind === "ok" && (
         <p className="rounded-md bg-emerald-50 p-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
           Synced {syncStatus.upserted} key{syncStatus.upserted === 1 ? "" : "s"} from code (
@@ -171,13 +268,27 @@ export function TranslationsEditor({
                 <Row
                   key={row.keyId}
                   row={row}
+                  suggestion={suggestions[row.keyId]}
+                  clearSuggestion={() =>
+                    setSuggestions((cur) => {
+                      if (!(row.keyId in cur)) return cur;
+                      const next = { ...cur };
+                      delete next[row.keyId];
+                      return next;
+                    })
+                  }
                   selectedLanguageId={selectedLanguageId}
-                  isDefaultLanguage={selectedLanguageId === defaultLanguageId}
+                  isDefaultLanguage={isDefaultLanguage}
                   onSaved={(updated) =>
                     setRows((cur) =>
                       cur.map((r) =>
                         r.keyId === row.keyId
-                          ? { ...r, value: updated.value, translationId: updated.id }
+                          ? {
+                              ...r,
+                              value: updated.value,
+                              translationId: updated.id,
+                              source: updated.source,
+                            }
                           : r,
                       ),
                     )
@@ -194,23 +305,42 @@ export function TranslationsEditor({
 
 function Row({
   row,
+  suggestion,
+  clearSuggestion,
   selectedLanguageId,
   isDefaultLanguage,
   onSaved,
 }: {
   row: TranslationRowView;
+  suggestion: string | undefined;
+  clearSuggestion: () => void;
   selectedLanguageId: string;
   isDefaultLanguage: boolean;
-  onSaved: (next: { id: string; value: string }) => void;
+  onSaved: (next: { id: string; value: string; source: string }) => void;
 }) {
   const { t } = useTranslation();
-  const [draft, setDraft] = useState(row.value ?? "");
+  // Draft tracks what's currently in the textarea. Initial value:
+  // suggestion (if bulk filled one) → existing DB value → empty.
+  const [draft, setDraft] = useState(suggestion ?? row.value ?? "");
+  // Track whether the textarea is currently showing an unsaved AI suggestion
+  // (so we can render the "auto-translated" hint until the admin saves).
+  const [showingSuggestion, setShowingSuggestion] = useState(suggestion !== undefined);
   const [status, setStatus] = useState<
     | { kind: "idle" }
     | { kind: "saving" }
     | { kind: "saved" }
+    | { kind: "translating" }
     | { kind: "err"; msg: string }
   >({ kind: "idle" });
+
+  // When a bulk suggestion arrives for THIS row after mount, fold it in.
+  // useEffect avoided to keep the component simple; instead we compare on
+  // each render: if a suggestion exists and the draft hasn't been edited
+  // since the row was created, sync.
+  if (suggestion !== undefined && !showingSuggestion && draft !== suggestion) {
+    setDraft(suggestion);
+    setShowingSuggestion(true);
+  }
 
   const placeholder =
     !isDefaultLanguage && row.defaultLanguageValue
@@ -235,10 +365,58 @@ function Row({
       setStatus({ kind: "err", msg: body?.error ?? "Save failed" });
       return;
     }
-    const body = (await res.json()) as { translation: { id: string; value: string } };
+    const body = (await res.json()) as {
+      translation: { id: string; value: string; source: string };
+    };
     onSaved(body.translation);
+    setShowingSuggestion(false);
+    clearSuggestion();
     setStatus({ kind: "saved" });
   }
+
+  async function translateOne() {
+    if (isDefaultLanguage) return;
+    setStatus({ kind: "translating" });
+    const res = await fetch("/api/super-admin/translations/auto-translate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        languageId: selectedLanguageId,
+        scope: { keyIds: [row.keyId] },
+        commit: false,
+      }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      setStatus({ kind: "err", msg: body?.error ?? "Translate failed" });
+      return;
+    }
+    const body = (await res.json()) as {
+      items: Array<{ keyId: string; translation: string }>;
+    };
+    const hit = body.items.find((it) => it.keyId === row.keyId);
+    if (!hit) {
+      setStatus({ kind: "err", msg: "No translation returned" });
+      return;
+    }
+    setDraft(hit.translation);
+    setShowingSuggestion(true);
+    setStatus({ kind: "idle" });
+  }
+
+  // Source badge logic:
+  // - showingSuggestion (unsaved AI fill): pending-auto chip
+  // - row.source === "auto" (saved AI value, no further edits): saved-auto chip
+  // - row.source === "human" or null: nothing
+  const sourceBadge = showingSuggestion ? (
+    <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+      {t("super_admin.translations.auto.suggestion_badge")}
+    </span>
+  ) : row.source === "auto" ? (
+    <span className="rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-200">
+      {t("super_admin.translations.auto.saved_badge")}
+    </span>
+  ) : null;
 
   return (
     <tr className="align-top">
@@ -257,19 +435,22 @@ function Row({
             value={draft}
             onChange={(e) => {
               setDraft(e.target.value);
+              // Manually editing dismisses the suggestion banner.
+              if (showingSuggestion) setShowingSuggestion(false);
               if (status.kind === "saved" || status.kind === "err") setStatus({ kind: "idle" });
             }}
             placeholder={placeholder}
             rows={Math.max(2, Math.ceil(draft.length / 80) || 2)}
             className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-slate-200"
           />
-          {row.value === null && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t("super_admin.translations.fallback_notice")}
-            </p>
-          )}
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {sourceBadge}
+              {row.value === null && !showingSuggestion && (
+                <span className="text-slate-500 dark:text-slate-400">
+                  {t("super_admin.translations.fallback_notice")}
+                </span>
+              )}
               {status.kind === "saved" && (
                 <span className="rounded bg-emerald-50 px-2 py-0.5 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
                   {t("super_admin.translations.saved")}
@@ -281,16 +462,30 @@ function Row({
                 </span>
               )}
             </div>
-            <button
-              type="button"
-              onClick={save}
-              disabled={!dirty || status.kind === "saving"}
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
-            >
-              {status.kind === "saving"
-                ? t("super_admin.translations.saving")
-                : t("super_admin.translations.save")}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {!isDefaultLanguage && (
+                <button
+                  type="button"
+                  onClick={translateOne}
+                  disabled={status.kind === "translating" || status.kind === "saving"}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+                >
+                  {status.kind === "translating"
+                    ? t("super_admin.translations.auto.translating")
+                    : t("super_admin.translations.auto.translate_row")}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={save}
+                disabled={!dirty || status.kind === "saving" || status.kind === "translating"}
+                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+              >
+                {status.kind === "saving"
+                  ? t("super_admin.translations.saving")
+                  : t("super_admin.translations.save")}
+              </button>
+            </div>
           </div>
         </div>
       </td>
