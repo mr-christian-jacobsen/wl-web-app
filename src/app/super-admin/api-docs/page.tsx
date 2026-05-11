@@ -1,4 +1,4 @@
-import { SwaggerUIClient } from "./swagger-ui-client";
+import { ScalarClient } from "./scalar-client";
 
 // The /super-admin layout already validates the session and redirects
 // non-admins, so the spec URL and this page are both shielded. The spec
@@ -18,7 +18,7 @@ export default function ApiDocsPage() {
         </p>
       </div>
       <div className="-mx-2 rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <SwaggerUIClient specUrl="/api/openapi" />
+        <ScalarClient specUrl="/api/openapi" />
       </div>
     </div>
   );
