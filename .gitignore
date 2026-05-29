@@ -39,3 +39,9 @@ prisma/dev.db-journal
 
 # typescript build cache
 *.tsbuildinfo
+
+# compound-engineering local config
+.compound-engineering/*.local.yaml
+
+# claude code local worktrees (feature/PR checkouts, not for tracking)
+.claude/worktrees/
