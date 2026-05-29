@@ -183,3 +183,7 @@ Excluded paths: `/api/auth/[...nextauth]` (NextAuth-internal) and `/api/openapi`
 - `pnpm promote-admin <email>` — set `isSuperAdmin = true` on a user.
 - `pnpm backfill-verified` — one-off after upgrading past the email-verification gate; sets `emailVerifiedAt = createdAt` for any user with `null` so pre-existing accounts can still log in.
 - `pnpm sync-translations` — reflect `KNOWN_TRANSLATIONS` (`src/lib/translations.ts`) into the DB without going through the Next.js `register()` hook. Belt-and-braces for cases where boot-time sync didn't fire (dev-mode hot-reload occasionally skips it, CI seeds, prod triage). The hook + admin "Sync from code" button are still the primary paths.
+
+## Documented solutions
+
+`docs/solutions/` collects write-ups of past problems (bugs, best practices, workflow patterns), organised by category with YAML frontmatter (`module`, `tags`, `problem_type`). Relevant when implementing or debugging in an area that may already be documented.
