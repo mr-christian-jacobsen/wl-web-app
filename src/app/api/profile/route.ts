@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { EMAIL_CHANGE_TTL_MS, sendEmailChangeConfirmation } from "@/lib/email";
 import { logError } from "@/lib/log.server";
+import { reevaluatePendingInstancesForUser } from "@/lib/predicates";
 import { generateToken } from "@/lib/tokens";
 import { updateProfileSchema } from "@/lib/validators";
 
@@ -119,6 +120,12 @@ export async function PATCH(req: Request) {
 
     pendingEmail = newEmail;
   }
+
+  // Fire-and-forget: any pending task instance whose predicate now
+  // matches (e.g. `language_set` after the user picks one here) flips
+  // to completed silently. Safe to call even when nothing changed —
+  // the hook is internally swallow-and-log.
+  void reevaluatePendingInstancesForUser(me.id);
 
   return NextResponse.json({
     user: {
