@@ -21,6 +21,7 @@
     "promote-admin": "node scripts/promote-super-admin.mjs",
     "backfill-verified": "node scripts/backfill-email-verified.mjs",
     "sync-translations": "node scripts/sync-translations.mjs",
+    "docs:fix": "node scripts/docs-fix.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -40,6 +41,7 @@
     "react-dom": "19.0.0-rc-66855b96-20241106",
     "react-easy-crop": "^5.5.7",
     "ua-parser-js": "^2.0.9",
+    "yaml": "^2.6.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

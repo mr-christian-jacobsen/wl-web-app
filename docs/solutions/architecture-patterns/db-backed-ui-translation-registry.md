@@ -1,6 +1,8 @@
 ---
 title: "DB-backed UI translation registry with boot-time sync and cached server reads"
 date: 2026-05-29
+id: SOL-2026-003
+status: active
 category: docs/solutions/architecture-patterns
 module: translations
 problem_type: architecture_pattern
@@ -16,7 +18,7 @@ applies_when:
 tags:
   - i18n
   - translations
-  - next-app-router
+  - app-router
   - react-cache
   - prisma
   - instrumentation

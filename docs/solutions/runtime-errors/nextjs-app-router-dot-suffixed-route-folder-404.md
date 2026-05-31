@@ -1,6 +1,8 @@
 ---
 title: Next.js App Router silently 404s on dot-suffixed route folders
 date: 2026-05-29
+id: SOL-2026-007
+status: active
 category: docs/solutions/runtime-errors
 module: API routes
 problem_type: runtime_error

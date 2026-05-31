@@ -1,6 +1,8 @@
 ---
 title: Removing a git worktree on Windows when node_modules exceeds MAX_PATH
 date: 2026-05-29
+id: SOL-2026-006
+status: active
 category: docs/solutions/developer-experience
 module: development environment (Windows / pnpm worktrees)
 problem_type: developer_experience

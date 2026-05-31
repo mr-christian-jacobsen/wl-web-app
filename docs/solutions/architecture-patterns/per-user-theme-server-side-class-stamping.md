@@ -1,6 +1,8 @@
 ---
 title: Per-user theme with server-side class stamping (no flash of wrong theme)
 date: 2026-05-29
+id: SOL-2026-005
+status: active
 category: docs/solutions/architecture-patterns
 module: Theming / root layout
 problem_type: architecture_pattern
