@@ -108,4 +108,5 @@ export const TAGS = {
   AdminSettings: "Super admin · System settings",
   AdminTasks: "Super admin · Tasks",
   Tasks: "Tasks",
+  Notifications: "Notifications",
 } as const;

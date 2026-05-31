@@ -11,6 +11,7 @@ import { registerAdminTemplateRoutes } from "./routes/admin-templates";
 import { registerAdminUserRoutes } from "./routes/admin-users";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerMiscPublicRoutes } from "./routes/misc-public";
+import { registerNotificationRoutes } from "./routes/notifications";
 import { registerProfileRoutes } from "./routes/profile";
 import { registerTaskRoutes } from "./routes/tasks";
 
@@ -32,6 +33,7 @@ function registerAll() {
   registerAdminSettingsRoutes();
   registerAdminTaskRoutes();
   registerTaskRoutes();
+  registerNotificationRoutes();
   registered = true;
 }
 
@@ -64,6 +66,7 @@ export function generateOpenApiDocument() {
       { name: "Super admin · System settings", description: "SMTP, translate provider, retention." },
       { name: "Super admin · Tasks", description: "Task definitions and instance lifecycle." },
       { name: "Tasks", description: "The signed-in user's task instances." },
+      { name: "Notifications", description: "In-app notifications surfaced by the header bell." },
     ],
   });
 }

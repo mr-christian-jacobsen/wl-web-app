@@ -464,6 +464,19 @@ export type EnableTaskInput = z.infer<typeof enableTaskSchema>;
 export const tickRequestSchema = z.object({}).strict();
 export type TickRequestInput = z.infer<typeof tickRequestSchema>;
 
+/**
+ * Body for POST /api/notifications/mark-read — the bell-dropdown-open
+ * + `/tasks`-visit bulk mark-read endpoint. No body fields: scope is
+ * always `session.user.id`, never accepted as a parameter. The schema
+ * exists for OpenAPI completeness (so the docs render a request body
+ * shape) and to enforce the cross-user IDOR boundary structurally —
+ * `.strict()` rejects any stray field so a misbehaving client sending
+ * `{ userId: ... }` fails loudly instead of having the field silently
+ * ignored.
+ */
+export const markNotificationsReadSchema = z.object({}).strict();
+export type MarkNotificationsReadInput = z.infer<typeof markNotificationsReadSchema>;
+
 export const clientLogEntrySchema = z.object({
   level: z.enum(["error", "warning", "info"]),
   name: z.string().max(255).nullable().optional(),

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { NotificationBellSlot } from "@/components/notifications/NotificationBellSlot";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getServerT } from "@/lib/translations.server";
 
 /**
@@ -14,9 +15,10 @@ import { getServerT } from "@/lib/translations.server";
  * middleware matcher is ever loosened.
  *
  * The header carries a single nav strip: app-name link (`/`),
- * `/profile`, `/tasks`, and a `<NotificationBellSlot />` placeholder.
- * U11 replaces the slot import with the real `<NotificationBell />`
- * without touching the layout shape.
+ * `/profile`, `/tasks`, and a `<NotificationBell />` (replaces the
+ * placeholder slot from U9). The bell receives the user's initial
+ * unread count as a server-rendered prop so the badge renders correctly
+ * on first paint with no client-side fetch flash.
  *
  * Admin users keep their own chrome from `src/app/super-admin/layout.tsx`
  * — that layout sits in a sibling route group and is unaffected here.
@@ -39,6 +41,14 @@ export default async function DashboardLayout({
     { href: "/tasks", key: "dashboard.nav.tasks" },
   ];
 
+  // Initial unread count is server-rendered into the bell so the badge
+  // matches the DB state on first paint. The bell re-fetches on open
+  // (and polls while open) so subsequent state stays fresh without an
+  // SSR round-trip.
+  const initialUnreadCount = await prisma.notification.count({
+    where: { userId: session.user.id, unread: true },
+  });
+
   return (
     <div className="flex flex-1 flex-col gap-6 py-8">
       <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
@@ -58,7 +68,7 @@ export default async function DashboardLayout({
               {t(l.key)}
             </Link>
           ))}
-          <NotificationBellSlot />
+          <NotificationBell initialUnreadCount={initialUnreadCount} />
         </nav>
       </header>
       {children}

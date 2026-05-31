@@ -522,6 +522,28 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     name: "Notifications — 'Mark all as read' button inside the dropdown",
     defaultValue: "Mark all as read",
   },
+  {
+    key: "notifications.bell.unread_count",
+    name: "Notifications — bell-button aria-label with unread count",
+    description:
+      "Uses `{n}` as the unread-count placeholder; used as the bell's aria-label when at least one notification is unread.",
+    defaultValue: "{n} unread notifications",
+  },
+  {
+    key: "notifications.see_all",
+    name: "Notifications — header link to the full task list",
+    defaultValue: "See all",
+  },
+  {
+    key: "notifications.loading",
+    name: "Notifications — loading state inside the bell dropdown",
+    defaultValue: "Loading…",
+  },
+  {
+    key: "notifications.fetch_failed",
+    name: "Notifications — error message when the dropdown fails to load",
+    defaultValue: "Couldn't load notifications.",
+  },
 
   // ─── Super admin shared nav ──────────────────────────────────────────────
   {

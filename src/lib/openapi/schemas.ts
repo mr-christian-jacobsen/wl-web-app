@@ -277,6 +277,50 @@ export const TaskInstanceDTO = registry.register(
     .openapi("TaskInstance"),
 );
 
+/**
+ * In-app notification (R13) returned by `GET /api/notifications`. The
+ * dropdown surface needs the linked `TaskInstance` + its parent `Task`
+ * title so the row can render a label and an "open task" link without
+ * a second request — the include is therefore part of the DTO, not
+ * fetched separately.
+ *
+ * `taskInstanceId` is nullable to mirror the schema (the FK is
+ * `onDelete: SetNull`, so a notification can outlive its instance and
+ * still appear in the dropdown after the row has been pruned).
+ */
+export const NotificationDTO = registry.register(
+  "Notification",
+  z
+    .object({
+      id: z.string(),
+      userId: z.string(),
+      type: z.string().openapi({
+        description:
+          "Notification type discriminator. v1 only emits `task_created`; the field exists to leave room for future types without a schema migration.",
+        example: "task_created",
+      }),
+      taskInstanceId: z.string().nullable(),
+      unread: z.boolean(),
+      createdAt: z.string().datetime(),
+      taskInstance: z
+        .object({
+          id: z.string(),
+          status: z.enum(["pending", "completed"]),
+          task: z.object({
+            id: z.string(),
+            title: z.string(),
+            predicateKey: z.string().nullable(),
+          }),
+        })
+        .nullable()
+        .openapi({
+          description:
+            "Inlined parent TaskInstance + Task so the dropdown can render the title and link to the task without a second round-trip. Null when the instance has been deleted (the FK is onDelete: SetNull).",
+        }),
+    })
+    .openapi("Notification"),
+);
+
 // ---------------------------------------------------------------------------
 // Inline request schemas — these don't live in `validators.ts` because they
 // only describe URL/header shapes for the OpenAPI document, not body parsing.
