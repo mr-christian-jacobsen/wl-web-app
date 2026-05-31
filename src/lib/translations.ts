@@ -450,6 +450,11 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     defaultValue: "Surveys",
   },
   {
+    key: "super_admin.nav.tags",
+    name: "Super admin nav — Tags",
+    defaultValue: "Tags",
+  },
+  {
     key: "super_admin.nav.languages",
     name: "Super admin nav — Languages",
     defaultValue: "Languages",
@@ -826,6 +831,7 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   { key: "admin.action.save", name: "Generic 'Save' button", defaultValue: "Save" },
   { key: "admin.action.saving", name: "Generic 'Saving…' button label", defaultValue: "Saving…" },
   { key: "admin.action.deleting", name: "Generic 'Deleting…' button label", defaultValue: "Deleting…" },
+  { key: "admin.action.dismiss", name: "Generic 'Dismiss' button (error/notice banners)", defaultValue: "Dismiss" },
   { key: "admin.you_chip", name: "Chip shown next to the current user's row", defaultValue: "you" },
 
   // ─── Users page ──────────────────────────────────────────────────────────
@@ -1148,6 +1154,170 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   { key: "public_survey.field.long_text_placeholder", name: "Public survey — long_text placeholder", defaultValue: "Your answer" },
   { key: "public_survey.field.yes", name: "Public survey — Yes option", defaultValue: "Yes" },
   { key: "public_survey.field.no", name: "Public survey — No option", defaultValue: "No" },
+
+  // ─── Tags catalog (/super-admin/tags) ────────────────────────────────────
+  { key: "super_admin.tags.title", name: "Tags — page title", defaultValue: "Tags" },
+  {
+    key: "super_admin.tags.description",
+    name: "Tags — page description",
+    defaultValue: "Manage tag categories and tags used to label surveys.",
+  },
+  { key: "super_admin.tags.new_tag", name: "Tags — '+ New tag' button", defaultValue: "New tag" },
+  {
+    key: "super_admin.tags.duplicate_name",
+    name: "Tags — duplicate name error",
+    defaultValue: "A tag with that name already exists.",
+  },
+  { key: "super_admin.tags.save_failed", name: "Tags — generic save failure", defaultValue: "Failed to save tag" },
+  {
+    key: "super_admin.tags.delete_confirm",
+    name: "Tags — delete confirmation prompt",
+    description: "{name} substitutes the tag name.",
+    defaultValue: "Delete tag \"{name}\"? It will be removed from the catalog.",
+  },
+  { key: "super_admin.tags.delete_failed", name: "Tags — delete failure fallback", defaultValue: "Failed to delete tag" },
+  {
+    key: "super_admin.tags.delete_in_use",
+    name: "Tags — 409 'tag in use' message",
+    description: "{n} substitutes the survey count returned by the API.",
+    defaultValue: "This tag is attached to {n} surveys. Remove it from those surveys first.",
+  },
+  {
+    key: "super_admin.tags.search_placeholder",
+    name: "Tags — search input placeholder",
+    defaultValue: "Search tags by name…",
+  },
+  { key: "super_admin.tags.empty", name: "Tags — empty state (with search)", defaultValue: "No tags match your search." },
+  {
+    key: "super_admin.tags.no_categories",
+    name: "Tags — empty state when no categories exist",
+    defaultValue: "No categories yet — create one in the sidebar.",
+  },
+  {
+    key: "super_admin.tags.chip_title",
+    name: "Tags — category chip title (tooltip)",
+    description: "{name} substitutes the category name.",
+    defaultValue: "Filter by category {name}",
+  },
+  { key: "super_admin.tags.col.name", name: "Tags — Name column header", defaultValue: "Name" },
+  { key: "super_admin.tags.col.categories", name: "Tags — Categories column header", defaultValue: "Categories" },
+  { key: "super_admin.tags.col.usage", name: "Tags — Usage column header", defaultValue: "Usage" },
+  { key: "super_admin.tags.col.actions", name: "Tags — Actions column header", defaultValue: "Actions" },
+  {
+    key: "super_admin.tags.pagination.showing",
+    name: "Tags — pagination 'Showing X–Y of N'",
+    description: "{from}, {to}, {n} substitute row range and total.",
+    defaultValue: "Showing {from}–{to} of {n}",
+  },
+  { key: "super_admin.tags.pagination.prev", name: "Tags — pagination Previous", defaultValue: "Previous" },
+  { key: "super_admin.tags.pagination.next", name: "Tags — pagination Next", defaultValue: "Next" },
+  {
+    key: "super_admin.tags.pagination.page_of",
+    name: "Tags — pagination 'Page X of Y'",
+    description: "{page} and {total} substitute current and total page count.",
+    defaultValue: "Page {page} of {total}",
+  },
+  { key: "super_admin.tags.form.create_title", name: "Tags — new-tag dialog title", defaultValue: "New tag" },
+  { key: "super_admin.tags.form.edit_title", name: "Tags — edit-tag dialog title", defaultValue: "Edit tag" },
+  { key: "super_admin.tags.form.name", name: "Tags — Name field label", defaultValue: "Name" },
+  { key: "super_admin.tags.form.categories_label", name: "Tags — Categories field label", defaultValue: "Categories" },
+  {
+    key: "super_admin.tags.form.no_categories",
+    name: "Tags — Categories field empty hint",
+    defaultValue: "No categories available.",
+  },
+  { key: "super_admin.tags.form.create_submit", name: "Tags — new-tag submit", defaultValue: "Create tag" },
+  { key: "super_admin.tags.form.edit_submit", name: "Tags — edit-tag submit", defaultValue: "Save changes" },
+  { key: "super_admin.tags.scope.all", name: "Tags — sidebar 'All tags' entry", defaultValue: "All tags" },
+  {
+    key: "super_admin.tags.scope.uncategorized",
+    name: "Tags — sidebar 'Uncategorized' entry",
+    defaultValue: "Uncategorized",
+  },
+  { key: "super_admin.tags.categories.title", name: "Tags — categories sidebar heading", defaultValue: "Categories" },
+  { key: "super_admin.tags.categories.new", name: "Tags — '+ New category' button", defaultValue: "New category" },
+  {
+    key: "super_admin.tags.categories.create_failed",
+    name: "Tags — category create failed",
+    defaultValue: "Failed to create category",
+  },
+  {
+    key: "super_admin.tags.categories.update_failed",
+    name: "Tags — category update failed",
+    defaultValue: "Failed to update category",
+  },
+  {
+    key: "super_admin.tags.categories.delete_failed",
+    name: "Tags — category delete failed",
+    defaultValue: "Failed to delete category",
+  },
+  {
+    key: "super_admin.tags.categories.duplicate_name",
+    name: "Tags — category duplicate-name error",
+    defaultValue: "A category with that name already exists.",
+  },
+  {
+    key: "super_admin.tags.categories.delete_confirm",
+    name: "Tags — category delete confirmation",
+    description: "{name} substitutes the category name; {n} the tag count that will lose membership.",
+    defaultValue: "Delete category \"{name}\"? {n} tags will become uncategorized.",
+  },
+  {
+    key: "super_admin.tags.categories.field.name",
+    name: "Tags — category Name field label",
+    defaultValue: "Name",
+  },
+  {
+    key: "super_admin.tags.categories.field.description",
+    name: "Tags — category Description field label",
+    defaultValue: "Description",
+  },
+  {
+    key: "super_admin.tags.categories.create_submit",
+    name: "Tags — category create submit",
+    defaultValue: "Create category",
+  },
+  {
+    key: "super_admin.tags.categories.update_submit",
+    name: "Tags — category update submit",
+    defaultValue: "Save changes",
+  },
+
+  // ─── Survey editor tag picker (super_admin.tags.picker.*) ────────────────
+  {
+    key: "super_admin.tags.picker.section_title",
+    name: "Survey editor — Tags section title",
+    defaultValue: "Tags",
+  },
+  {
+    key: "super_admin.tags.picker.summary",
+    name: "Survey editor — '{n} tags attached' summary",
+    description: "{n} substitutes the count of currently-attached tags.",
+    defaultValue: "{n} tags attached",
+  },
+  {
+    key: "super_admin.tags.picker.uncategorized_group",
+    name: "Survey editor — Uncategorized group label in picker",
+    defaultValue: "Uncategorized",
+  },
+  { key: "super_admin.tags.picker.save", name: "Survey editor — Save tags button", defaultValue: "Save tags" },
+  { key: "super_admin.tags.picker.saving", name: "Survey editor — Saving… label", defaultValue: "Saving…" },
+  { key: "super_admin.tags.picker.saved", name: "Survey editor — Saved confirmation", defaultValue: "Saved" },
+  {
+    key: "super_admin.tags.picker.save_failed",
+    name: "Survey editor — save-failed fallback",
+    defaultValue: "Failed to save tags",
+  },
+  {
+    key: "super_admin.tags.picker.unknown_tag_ids",
+    name: "Survey editor — 400 unknown_tag_ids message",
+    defaultValue: "One or more tags are no longer available — please reload the page.",
+  },
+  {
+    key: "super_admin.tags.picker.empty_state",
+    name: "Survey editor — picker empty state",
+    defaultValue: "No tags in the catalog yet.",
+  },
 ];
 
 const TRANSLATIONS_BY_KEY = new Map(KNOWN_TRANSLATIONS.map((t) => [t.key, t]));

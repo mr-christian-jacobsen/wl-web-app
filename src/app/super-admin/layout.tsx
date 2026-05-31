@@ -17,6 +17,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     { href: "/super-admin", key: "super_admin.nav.overview" },
     { href: "/super-admin/users", key: "super_admin.nav.users" },
     { href: "/super-admin/surveys", key: "super_admin.nav.surveys" },
+    { href: "/super-admin/tags", key: "super_admin.nav.tags" },
     { href: "/super-admin/languages", key: "super_admin.nav.languages" },
     { href: "/super-admin/translations", key: "super_admin.nav.translations" },
     { href: "/super-admin/email-templates", key: "super_admin.nav.email_templates" },
