@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildTagsListOrderBy,
   buildTagsListWhere,
+  partitionReplaceTagIds,
   TagInUseError,
+  UnknownTagIdsError,
 } from "@/lib/tags";
 import { listTagsQuerySchema } from "@/lib/validators";
 
@@ -90,6 +92,52 @@ describe("TagInUseError", () => {
   it("is an instance of TagInUseError and Error", () => {
     const e = new TagInUseError(2);
     expect(e instanceof TagInUseError).toBe(true);
+    expect(e instanceof Error).toBe(true);
+  });
+});
+
+describe("partitionReplaceTagIds", () => {
+  it("returns every requested ID under toApply when all are known", () => {
+    expect(
+      partitionReplaceTagIds(["a", "b"], new Set(["a", "b", "c"])),
+    ).toEqual({ toApply: ["a", "b"], unknown: [] });
+  });
+
+  it("splits unknown IDs into the unknown bucket", () => {
+    expect(partitionReplaceTagIds(["a", "x"], new Set(["a"]))).toEqual({
+      toApply: ["a"],
+      unknown: ["x"],
+    });
+  });
+
+  it("handles the empty-requested 'detach all' case", () => {
+    expect(partitionReplaceTagIds([], new Set(["a"]))).toEqual({
+      toApply: [],
+      unknown: [],
+    });
+  });
+
+  it("preserves the original order of requested in toApply", () => {
+    expect(partitionReplaceTagIds(["b", "a"], new Set(["a", "b"]))).toEqual({
+      toApply: ["b", "a"],
+      unknown: [],
+    });
+  });
+});
+
+describe("UnknownTagIdsError", () => {
+  it("carries the unknown IDs it was constructed with", () => {
+    expect(new UnknownTagIdsError(["x"]).unknown).toEqual(["x"]);
+  });
+
+  it("has a stable name for instanceof + name-tag-based checks", () => {
+    const e = new UnknownTagIdsError(["x"]);
+    expect(e.name).toBe("UnknownTagIdsError");
+  });
+
+  it("is an instance of UnknownTagIdsError and Error", () => {
+    const e = new UnknownTagIdsError(["x", "y"]);
+    expect(e instanceof UnknownTagIdsError).toBe(true);
     expect(e instanceof Error).toBe(true);
   });
 });
