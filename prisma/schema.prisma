@@ -76,6 +76,7 @@ model Survey {
 
   steps     SurveyStep[]
   responses SurveyResponse[]
+  tags      SurveyTag[]
 
   @@index([updatedAt])
 }
@@ -387,4 +388,88 @@ model LogEntry {
   @@index([userId])
   @@index([source])
   @@index([sessionId])
+}
+
+/// Admin-managed tag category. Global resource — no `userId`, like
+/// `Language` and `EmailTemplate`. Categories organise tags in the
+/// `/super-admin/tags` catalog sidebar and group tags by heading in
+/// the survey editor's tag picker. Categories are M:N with tags via
+/// `TagCategoryAssignment`; a tag in two categories appears under
+/// both group headings (single underlying tag, two visual rows).
+///
+/// Case-insensitive uniqueness is enforced by the `@unique` on
+/// `nameLower`, populated by the helper in `src/lib/categories.ts`
+/// on every write. SQLite's default collation is case-sensitive so
+/// the original `name` keeps its case for display while `nameLower`
+/// is what enforces "Compliance" and "compliance" cannot coexist.
+model TagCategory {
+  id          String   @id @default(cuid())
+  /// Display name; case-preserved (e.g., "Audience"). The DB-write
+  /// normaliser in `src/lib/db.ts` trims; case is preserved.
+  name        String   @unique
+  /// Lower-cased copy of `name` populated by every write helper.
+  /// The unique index on this column is what enforces case-insensitive
+  /// uniqueness — `@unique` on `name` alone would let "Compliance"
+  /// and "compliance" coexist under SQLite's default collation.
+  nameLower   String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments TagCategoryAssignment[]
+}
+
+/// Admin-managed tag. M:N with `TagCategory` (zero or more categories
+/// per tag — "uncategorized" is a real state, surfaced as a synthetic
+/// scope in the catalog sidebar). M:N with `Survey` via `SurveyTag`;
+/// the `SurveyTag.tagId` FK is `onDelete: Restrict` so deleting a tag
+/// that's applied to a survey fails at the DB layer. Handlers do a
+/// `_count.surveyAttachments` pre-check before delete and return 409
+/// with the survey count — the Restrict FK is the safety net, not
+/// the primary mechanism.
+///
+/// Case-insensitive uniqueness via `nameLower` (same shape as
+/// `TagCategory`).
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  nameLower String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments       TagCategoryAssignment[]
+  surveyAttachments SurveyTag[]
+}
+
+/// Junction row connecting a `Tag` to a `TagCategory`. Both FKs
+/// cascade — deleting a category removes the membership rows (tags
+/// survive and surface under "Uncategorized" if they had no other
+/// category); deleting a tag removes its memberships too (delete of
+/// the tag itself is gated by the Restrict FK on `SurveyTag.tagId`).
+model TagCategoryAssignment {
+  tagId      String
+  categoryId String
+
+  tag      Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  category TagCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([tagId, categoryId])
+  @@index([categoryId])
+  @@index([tagId])
+}
+
+/// Junction row connecting a `Survey` to a `Tag`. `Survey` FK
+/// cascades (deleting a survey removes its tag attachments —
+/// non-destructive to the tag catalog). `Tag` FK is `Restrict` so
+/// deleting a tag that's in use here fails at the DB layer; the API
+/// `_count` pre-check returns 409 first.
+model SurveyTag {
+  surveyId String
+  tagId    String
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Restrict)
+
+  @@id([surveyId, tagId])
+  @@index([tagId])
 }
