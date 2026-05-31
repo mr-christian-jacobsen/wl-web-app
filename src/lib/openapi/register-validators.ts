@@ -8,9 +8,12 @@ import {
   adminCreateUserSchema,
   adminUpdateUserSchema,
   assignTaskInstanceSchema,
+  createTaskSchema,
   enableTaskSchema,
   markNotificationsReadSchema,
+  taskTriggerSchema,
   tickRequestSchema,
+  updateTaskSchema,
   autoTranslateRequestSchema,
   changePasswordSchema,
   clientLogEntrySchema,
@@ -74,3 +77,6 @@ registry.register("AssignTaskInstanceInput", assignTaskInstanceSchema);
 registry.register("EnableTaskInput", enableTaskSchema);
 registry.register("TickRequestInput", tickRequestSchema);
 registry.register("MarkNotificationsReadInput", markNotificationsReadSchema);
+registry.register("TaskTriggerInput", taskTriggerSchema);
+registry.register("CreateTaskInput", createTaskSchema);
+registry.register("UpdateTaskInput", updateTaskSchema);

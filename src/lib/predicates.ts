@@ -84,6 +84,15 @@ export const KNOWN_PREDICATES = [
 
 export type KnownPredicateKey = (typeof KNOWN_PREDICATES)[number]["key"];
 
+/**
+ * Stable list of valid predicate keys, exported so validators (U7) and
+ * the admin editor can `.includes()` against it without re-deriving
+ * from the registry tuple. Order matches `KNOWN_PREDICATES`.
+ */
+export const KNOWN_PREDICATE_KEYS = KNOWN_PREDICATES.map(
+  (p) => p.key,
+) as ReadonlyArray<KnownPredicateKey>;
+
 const PREDICATE_BY_KEY: ReadonlyMap<string, PredicateDef> = new Map(
   KNOWN_PREDICATES.map((p) => [p.key, p]),
 );

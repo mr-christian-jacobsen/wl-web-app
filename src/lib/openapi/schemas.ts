@@ -244,6 +244,70 @@ export const SyncTranslationsResultDTO = registry.register(
 );
 
 /**
+ * One trigger row attached to a Task definition (U7). The DB column
+ * `dateList` is newline-joined `YYYY-MM-DD`; the editor and the
+ * `(create|update)TaskSchema` validators carry it as an array on the
+ * wire, but the read-side shape (returned by `GET` on the editor) is
+ * still the storage shape because the editor splits on '\n' itself.
+ */
+export const TaskTriggerDTO = registry.register(
+  "TaskTrigger",
+  z
+    .object({
+      id: z.string(),
+      kind: z.enum(["signup", "manual_assign", "recurring", "specific_date"]),
+      intervalDays: z.number().int().min(1).nullable(),
+      dateList: z
+        .string()
+        .nullable()
+        .openapi({
+          description:
+            "Newline-joined YYYY-MM-DD strings for specific_date triggers; null for every other kind.",
+        }),
+    })
+    .openapi("TaskTrigger"),
+);
+
+/**
+ * Admin task definition summary returned by `GET
+ * /api/super-admin/tasks` (the list) and the POST/PATCH/GET
+ * single-task endpoints (the detail variant additionally inlines the
+ * trigger list).
+ */
+export const TaskDTO = registry.register(
+  "Task",
+  z
+    .object({
+      id: z.string(),
+      title: z.string(),
+      description: z.string().nullable(),
+      predicateKey: z
+        .string()
+        .nullable()
+        .openapi({
+          description:
+            "One of `KNOWN_PREDICATES` keys from `src/lib/predicates.ts`, or null for the 'manual / trust user' sentinel.",
+        }),
+      enabled: z.boolean(),
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+      instanceCount: z.number().int().min(0).openapi({
+        description:
+          "Count of TaskInstance rows referencing this task. Used by the admin list + delete-refuse check.",
+      }),
+      triggerCount: z.number().int().min(0).optional().openapi({
+        description:
+          "Count of TaskTrigger rows. Only present on list responses; the detail GET includes the full `triggers` array instead.",
+      }),
+      triggers: z.array(TaskTriggerDTO).optional().openapi({
+        description:
+          "Inlined trigger list. Present on detail GET / POST / PATCH responses; absent from list summaries.",
+      }),
+    })
+    .openapi("Task"),
+);
+
+/**
  * Per-user task instance returned by the admin assign endpoint (and
  * later by the user list / admin overview endpoints in U8/U9). The
  * shape matches the Prisma row directly because the assign endpoint

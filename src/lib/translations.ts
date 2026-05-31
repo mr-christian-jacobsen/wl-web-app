@@ -572,6 +572,11 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     defaultValue: "Surveys",
   },
   {
+    key: "super_admin.nav.tasks",
+    name: "Super admin nav — Tasks",
+    defaultValue: "Tasks",
+  },
+  {
     key: "super_admin.nav.languages",
     name: "Super admin nav — Languages",
     defaultValue: "Languages",
@@ -1180,6 +1185,94 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   { key: "public_survey.field.long_text_placeholder", name: "Public survey — long_text placeholder", defaultValue: "Your answer" },
   { key: "public_survey.field.yes", name: "Public survey — Yes option", defaultValue: "Yes" },
   { key: "public_survey.field.no", name: "Public survey — No option", defaultValue: "No" },
+
+  // ─── Super admin / Tasks (U7 admin editor) ───────────────────────────────
+  { key: "super_admin.tasks.title", name: "Tasks — page title", defaultValue: "Tasks" },
+  {
+    key: "super_admin.tasks.description",
+    name: "Tasks — page description",
+    defaultValue:
+      "Configurable to-do items the system can assign to your users. Each definition has triggers (signup, manual assign, recurring, specific date) and an optional auto-complete predicate from the engineering catalog.",
+  },
+  { key: "super_admin.tasks.empty", name: "Tasks — empty state", defaultValue: "No tasks yet — click 'New task' to create one." },
+  { key: "super_admin.tasks.new", name: "Tasks — 'New task' button", defaultValue: "New task" },
+  { key: "super_admin.tasks.create_failed", name: "Tasks — create-failed fallback", defaultValue: "Could not create task" },
+  { key: "super_admin.tasks.delete_failed", name: "Tasks — delete-failed fallback", defaultValue: "Could not delete task" },
+  {
+    key: "super_admin.tasks.delete_confirm",
+    name: "Tasks — delete confirmation",
+    description: "{title} is replaced with the task title.",
+    defaultValue: "Delete task \"{title}\"?",
+  },
+  {
+    key: "super_admin.tasks.row.counts",
+    name: "Tasks — per-row 'N instances · N triggers' summary",
+    description: "{instances} and {triggers} are the counts.",
+    defaultValue: "{instances} instances · {triggers} triggers",
+  },
+  { key: "super_admin.tasks.status.enabled", name: "Tasks — Enabled badge", defaultValue: "Enabled" },
+  { key: "super_admin.tasks.status.disabled", name: "Tasks — Disabled badge", defaultValue: "Disabled" },
+  { key: "super_admin.tasks.dialog.title_label", name: "Tasks dialog — Title field", defaultValue: "Title" },
+  { key: "super_admin.tasks.dialog.description_label", name: "Tasks dialog — Description field (optional)", defaultValue: "Description (optional)" },
+  { key: "super_admin.tasks.dialog.create", name: "Tasks dialog — Create submit", defaultValue: "Create task" },
+
+  // ─── Task editor ─────────────────────────────────────────────────────────
+  { key: "super_admin.tasks.editor.details_section", name: "Task editor — 'Details' section title", defaultValue: "Task details" },
+  { key: "super_admin.tasks.editor.title_label", name: "Task editor — Title field", defaultValue: "Title" },
+  { key: "super_admin.tasks.editor.description_label", name: "Task editor — Description field", defaultValue: "Description" },
+  { key: "super_admin.tasks.editor.predicate_label", name: "Task editor — Predicate field", defaultValue: "Auto-complete predicate" },
+  { key: "super_admin.tasks.editor.predicate_manual", name: "Task editor — manual sentinel option label", defaultValue: "Manual / trust user (no predicate)" },
+  {
+    key: "super_admin.tasks.editor.predicate_manual_hint",
+    name: "Task editor — hint text under the manual sentinel",
+    defaultValue: "No auto-complete check. Tasks complete only when the user clicks 'Mark complete' or an admin marks it complete on their behalf.",
+  },
+  { key: "super_admin.tasks.editor.triggers_section", name: "Task editor — 'Triggers' section title", defaultValue: "Triggers" },
+  {
+    key: "super_admin.tasks.editor.triggers_description",
+    name: "Task editor — Triggers section description",
+    defaultValue: "At least one trigger is required. Add multiple to combine paths (e.g. signup AND manual assign).",
+  },
+  { key: "super_admin.tasks.editor.triggers_empty", name: "Task editor — empty triggers state", defaultValue: "No triggers yet — click 'Add trigger' above." },
+  { key: "super_admin.tasks.editor.add_trigger", name: "Task editor — Add-trigger button", defaultValue: "Add trigger" },
+  { key: "super_admin.tasks.editor.trigger.signup", name: "Task editor — 'Signup' trigger kind label", defaultValue: "On signup" },
+  { key: "super_admin.tasks.editor.trigger.manual_assign", name: "Task editor — 'Manual assign' trigger kind label", defaultValue: "Manual assign only" },
+  { key: "super_admin.tasks.editor.trigger.recurring", name: "Task editor — 'Recurring' trigger kind label", defaultValue: "Recurring (every N days)" },
+  { key: "super_admin.tasks.editor.trigger.specific_date", name: "Task editor — 'Specific date' trigger kind label", defaultValue: "Specific date(s)" },
+  { key: "super_admin.tasks.editor.trigger.interval_label", name: "Task editor — interval-days input label", defaultValue: "Interval (days)" },
+  { key: "super_admin.tasks.editor.trigger.dates_label", name: "Task editor — dates textarea label", defaultValue: "Dates (one YYYY-MM-DD per line)" },
+  { key: "super_admin.tasks.editor.save_button", name: "Task editor — Save button", defaultValue: "Save task" },
+  { key: "super_admin.tasks.editor.save_failed", name: "Task editor — save-failed fallback", defaultValue: "Could not save task" },
+  { key: "super_admin.tasks.editor.saved", name: "Task editor — save success", defaultValue: "Saved" },
+  { key: "super_admin.tasks.editor.delete_button", name: "Task editor — Delete button", defaultValue: "Delete task" },
+  {
+    key: "super_admin.tasks.editor.delete_confirm",
+    name: "Task editor — delete confirmation",
+    description: "{title} is replaced with the task title.",
+    defaultValue: "Delete task \"{title}\"? This cannot be undone.",
+  },
+  { key: "super_admin.tasks.editor.delete_failed", name: "Task editor — delete-failed fallback", defaultValue: "Could not delete task" },
+  { key: "super_admin.tasks.editor.enable_button", name: "Task editor — Enable button", defaultValue: "Enable" },
+  { key: "super_admin.tasks.editor.disable_button", name: "Task editor — Disable button", defaultValue: "Disable" },
+  { key: "super_admin.tasks.editor.error.no_triggers", name: "Task editor — error: zero triggers", defaultValue: "Add at least one trigger before saving." },
+  {
+    key: "super_admin.tasks.editor.error.bad_interval",
+    name: "Task editor — error: invalid interval",
+    description: "{idx} is the 1-based trigger number.",
+    defaultValue: "Trigger {idx}: interval (days) must be a positive integer.",
+  },
+  {
+    key: "super_admin.tasks.editor.error.no_dates",
+    name: "Task editor — error: empty dates",
+    description: "{idx} is the 1-based trigger number.",
+    defaultValue: "Trigger {idx}: provide at least one date.",
+  },
+  {
+    key: "super_admin.tasks.editor.error.bad_date",
+    name: "Task editor — error: malformed date",
+    description: "{date} is the offending date string.",
+    defaultValue: "Dates must be in YYYY-MM-DD format; got \"{date}\".",
+  },
 ];
 
 const TRANSLATIONS_BY_KEY = new Map(KNOWN_TRANSLATIONS.map((t) => [t.key, t]));

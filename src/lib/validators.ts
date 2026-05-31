@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { isValidCountryLanguage } from "@/lib/locales";
+import { KNOWN_PREDICATE_KEYS } from "@/lib/predicates";
 import { STEP_TYPE_KEYS, parseOptions, stepTypeRequiresOptions } from "@/lib/step-types";
 
 export const emailSchema = z.string().trim().toLowerCase().email("Invalid email address");
@@ -451,6 +452,134 @@ export const enableTaskSchema = z
   .object({ notify: z.boolean() })
   .strict();
 export type EnableTaskInput = z.infer<typeof enableTaskSchema>;
+
+/**
+ * Task trigger discriminated union (U7). Each variant is `.strict()`
+ * so trigger-shape mistakes (e.g. `dates` on a `recurring` row) fail
+ * at the validator boundary instead of being silently dropped. Used by
+ * `createTaskSchema` / `updateTaskSchema` below.
+ *
+ * Validator shape vs DB shape:
+ *   - `specific_date` carries `dates: string[]` in the wire format
+ *     because arrays are the natural shape for a client / OpenAPI doc.
+ *   - The DB column is `TaskTrigger.dateList String?` (newline-joined),
+ *     so handlers convert at the boundary: `dateList = dates.join('\n')`
+ *     on write; readers split on `'\n'`.
+ *
+ * The signup / manual_assign variants carry no sub-fields and
+ * intentionally `.strict()` to reject `intervalDays` / `dates` so a
+ * client form bug can't smuggle stray config into a no-config trigger.
+ */
+const signupTriggerSchema = z
+  .object({ kind: z.literal("signup") })
+  .strict();
+
+const manualAssignTriggerSchema = z
+  .object({ kind: z.literal("manual_assign") })
+  .strict();
+
+const recurringTriggerSchema = z
+  .object({
+    kind: z.literal("recurring"),
+    intervalDays: z
+      .number()
+      .int("intervalDays must be an integer")
+      .min(1, "intervalDays must be at least 1"),
+  })
+  .strict();
+
+const specificDateTriggerSchema = z
+  .object({
+    kind: z.literal("specific_date"),
+    dates: z
+      .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Each date must be YYYY-MM-DD"))
+      .min(1, "Provide at least one date"),
+  })
+  .strict();
+
+export const taskTriggerSchema = z.discriminatedUnion("kind", [
+  signupTriggerSchema,
+  manualAssignTriggerSchema,
+  recurringTriggerSchema,
+  specificDateTriggerSchema,
+]);
+export type TaskTriggerInput = z.infer<typeof taskTriggerSchema>;
+
+const taskTitleSchema = z
+  .string()
+  .trim()
+  .min(1, "Title is required")
+  .max(160, "Title must be at most 160 characters");
+
+const taskDescriptionSchema = z
+  .string()
+  .trim()
+  .max(4_000, "Description must be at most 4000 characters")
+  .nullable()
+  .optional();
+
+const taskPredicateKeySchema = z
+  .union([z.string().trim().min(1), z.null()])
+  .optional()
+  .refine(
+    (v) => v == null || (KNOWN_PREDICATE_KEYS as ReadonlyArray<string>).includes(v),
+    {
+      message: "Unknown predicate key",
+    },
+  );
+
+/**
+ * Body for POST /api/super-admin/tasks — create a task definition with
+ * its trigger list in a single round-trip (U7). `predicateKey` is
+ * either one of the `KNOWN_PREDICATES` keys (the engineering-maintained
+ * registry in `src/lib/predicates.ts`) or null/omitted for the
+ * "manual / trust user" sentinel. `triggers` must be non-empty —
+ * a definition with no trigger has no path to ever create an instance,
+ * which is a misconfiguration we reject at the validator instead of
+ * silently shipping a dead task. `enabled` defaults to false so admins
+ * draft tasks before flipping them on (which routes through the
+ * dedicated enable endpoint that runs the backfill — see U5).
+ */
+export const createTaskSchema = z
+  .object({
+    title: taskTitleSchema,
+    description: taskDescriptionSchema,
+    predicateKey: taskPredicateKeySchema,
+    triggers: z.array(taskTriggerSchema).min(1, "Provide at least one trigger"),
+    enabled: z.boolean().optional(),
+  })
+  .strict();
+export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+
+/**
+ * Body for PATCH /api/super-admin/tasks/{id} — partial update. Every
+ * field is optional; omitted fields are left untouched. When
+ * `triggers` is present it replaces the full trigger list (handler
+ * deletes the old rows and inserts the new ones in one transaction).
+ * `enabled` is NOT toggled through PATCH for the disabled→enabled
+ * transition — that path routes through the dedicated enable endpoint
+ * so the backfill + 422 cap pre-check fire. PATCH is allowed for
+ * enabled→disabled (kept simple; no backfill side effects).
+ */
+export const updateTaskSchema = z
+  .object({
+    title: taskTitleSchema.optional(),
+    description: taskDescriptionSchema,
+    predicateKey: taskPredicateKeySchema,
+    triggers: z.array(taskTriggerSchema).min(1, "Provide at least one trigger").optional(),
+    enabled: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (d) =>
+      d.title !== undefined ||
+      d.description !== undefined ||
+      d.predicateKey !== undefined ||
+      d.triggers !== undefined ||
+      d.enabled !== undefined,
+    { message: "Provide at least one field to update" },
+  );
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 
 /**
  * Body for POST /api/super-admin/tasks/tick — the external-cron-callable

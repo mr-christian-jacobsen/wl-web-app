@@ -1,26 +1,168 @@
 import {
   assignTaskInstanceSchema,
+  createTaskSchema,
   enableTaskSchema,
   tickRequestSchema,
+  updateTaskSchema,
 } from "@/lib/validators";
 
 import {
   ErrorResponse,
+  jsonResponse,
+  OkResponse,
   registry,
   TAGS,
   unauthorizedResponses,
   validationErrorResponse,
   z,
 } from "../registry";
-import { IdParam, TaskInstanceDTO } from "../schemas";
+import { IdParam, TaskDTO, TaskInstanceDTO } from "../schemas";
 
 /**
- * Admin tasks routes — registers the manual-assign endpoint (U4) and
- * the backfill-on-enable endpoints (U5). The full definition CRUD
- * surface (list / create / update / delete / tick) lands in U7–U10
- * and will add its own registrations to this file.
+ * Admin tasks routes — registers the manual-assign endpoint (U4),
+ * the backfill-on-enable endpoints (U5), the scheduler tick (U6), and
+ * the definition CRUD surface (U7).
  */
 export function registerAdminTaskRoutes() {
+  registry.registerPath({
+    method: "get",
+    path: "/api/super-admin/tasks",
+    tags: [TAGS.AdminTasks],
+    summary: "List task definitions",
+    description:
+      "Returns every task definition with summary counts (instance + trigger) for the admin list page. Ordering: most recently updated first.",
+    security: [{ sessionCookie: [] }],
+    responses: {
+      200: {
+        description: "Tasks, most recently updated first.",
+        content: {
+          "application/json": {
+            schema: z.object({ tasks: z.array(TaskDTO) }),
+          },
+        },
+      },
+      ...unauthorizedResponses(),
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/api/super-admin/tasks",
+    tags: [TAGS.AdminTasks],
+    summary: "Create a task definition",
+    description:
+      "Creates a Task and its TaskTrigger child rows in one transaction. The validator's `specific_date.dates: string[]` is converted at the handler boundary into the DB column `dateList` (newline-joined). `enabled` defaults to false — admins flip it on through the dedicated `/enable` endpoint so the backfill side effects + cap pre-check fire.",
+    security: [{ sessionCookie: [] }],
+    request: {
+      body: {
+        content: { "application/json": { schema: createTaskSchema } },
+        required: true,
+      },
+    },
+    responses: {
+      201: {
+        description: "Task created.",
+        content: {
+          "application/json": {
+            schema: z.object({ task: TaskDTO }),
+          },
+        },
+      },
+      ...validationErrorResponse(),
+      ...unauthorizedResponses(),
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/api/super-admin/tasks/{id}",
+    tags: [TAGS.AdminTasks],
+    summary: "Fetch a task definition with its triggers",
+    security: [{ sessionCookie: [] }],
+    request: { params: IdParam },
+    responses: {
+      200: {
+        description: "Task detail including the trigger list and instance count.",
+        content: {
+          "application/json": {
+            schema: z.object({ task: TaskDTO }),
+          },
+        },
+      },
+      ...unauthorizedResponses(),
+      404: {
+        description: "Task not found.",
+        content: { "application/json": { schema: ErrorResponse } },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: "patch",
+    path: "/api/super-admin/tasks/{id}",
+    tags: [TAGS.AdminTasks],
+    summary: "Update a task definition (partial)",
+    description:
+      "Every field is optional. When `triggers` is present the whole trigger list is replaced (delete-all + insert in one transaction). The disabled→enabled transition is NOT supported here — admins route through `/enable` for that path so the backfill fires; PATCH only supports `enabled: false` (disable) or leaving the field untouched.",
+    security: [{ sessionCookie: [] }],
+    request: {
+      params: IdParam,
+      body: {
+        content: { "application/json": { schema: updateTaskSchema } },
+        required: true,
+      },
+    },
+    responses: {
+      200: {
+        description: "Updated task with its current trigger list.",
+        content: {
+          "application/json": {
+            schema: z.object({ task: TaskDTO }),
+          },
+        },
+      },
+      ...validationErrorResponse(),
+      ...unauthorizedResponses(),
+      404: {
+        description: "Task not found.",
+        content: { "application/json": { schema: ErrorResponse } },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: "delete",
+    path: "/api/super-admin/tasks/{id}",
+    tags: [TAGS.AdminTasks],
+    summary: "Delete a task definition",
+    description:
+      "Refuses (409) when the task has any TaskInstance rows — admins must zero those out first. Triggers cascade with the task. Mirrors the language-delete-refuse-on-children pattern.",
+    security: [{ sessionCookie: [] }],
+    request: { params: IdParam },
+    responses: {
+      ...jsonResponse("Task deleted.", OkResponse),
+      ...unauthorizedResponses(),
+      404: {
+        description: "Task not found.",
+        content: { "application/json": { schema: ErrorResponse } },
+      },
+      409: {
+        description:
+          "Task has TaskInstance rows (`code: 'HAS_INSTANCES'`). Body carries `instanceCount`.",
+        content: {
+          "application/json": {
+            schema: z.object({
+              error: z.string(),
+              code: z.literal("HAS_INSTANCES"),
+              instanceCount: z.number().int().min(1),
+            }),
+          },
+        },
+      },
+    },
+  });
+
+
   registry.registerPath({
     method: "post",
     path: "/api/super-admin/tasks/{id}/assign",
