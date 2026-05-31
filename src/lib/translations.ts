@@ -1179,8 +1179,8 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   {
     key: "super_admin.tags.delete_in_use",
     name: "Tags — 409 'tag in use' message",
-    description: "{n} substitutes the survey count returned by the API.",
-    defaultValue: "This tag is attached to {n} surveys. Remove it from those surveys first.",
+    description: "{n} substitutes the survey count; {plural} is \"\" for 1 / \"s\" otherwise.",
+    defaultValue: "This tag is attached to {n} survey{plural}. Remove it first.",
   },
   {
     key: "super_admin.tags.search_placeholder",
@@ -1206,8 +1206,8 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   {
     key: "super_admin.tags.pagination.showing",
     name: "Tags — pagination 'Showing X–Y of N'",
-    description: "{from}, {to}, {n} substitute row range and total.",
-    defaultValue: "Showing {from}–{to} of {n}",
+    description: "{from}, {to}, {total} substitute row range and total.",
+    defaultValue: "Showing {from}–{to} of {total}",
   },
   { key: "super_admin.tags.pagination.prev", name: "Tags — pagination Previous", defaultValue: "Previous" },
   { key: "super_admin.tags.pagination.next", name: "Tags — pagination Next", defaultValue: "Next" },
@@ -1259,8 +1259,8 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   {
     key: "super_admin.tags.categories.delete_confirm",
     name: "Tags — category delete confirmation",
-    description: "{name} substitutes the category name; {n} the tag count that will lose membership.",
-    defaultValue: "Delete category \"{name}\"? {n} tags will become uncategorized.",
+    description: "{name} category name; {n} tag count; {plural} \"\" for 1 / \"s\" otherwise.",
+    defaultValue: "Delete category \"{name}\"? {n} tag{plural} will become uncategorized.",
   },
   {
     key: "super_admin.tags.categories.field.name",
