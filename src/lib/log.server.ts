@@ -13,6 +13,7 @@ import {
   truncate,
 } from "@/lib/log";
 import { maybePruneLogEntries } from "@/lib/log.prune";
+import { maybeProcessUserTriggers } from "@/lib/scheduler";
 
 type RequestContext = {
   method?: string | null;
@@ -109,6 +110,19 @@ export async function writeLogEntry(input: LogInput): Promise<void> {
   // Internally rate-limited to once per 24h via the `log.lastPrunedAt`
   // SystemSetting so high-write paths don't keep repeating it.
   void maybePruneLogEntries();
+
+  // Opportunistic per-user tasks-scheduler hook (U6 / KTD1). Mirrors the
+  // log-prune fire-and-forget pattern: internally rate-limited to once
+  // per `tasks.scheduler.userWindowMs` (default 5 min) via the
+  // `tasks.user.lastRunAt.<userId>` SystemSetting. Two important guards:
+  //   - Only fire when we know the userId — anonymous client log entries
+  //     don't carry one and there's no user to schedule against.
+  //   - Errors are swallowed inside `maybeProcessUserTriggers`; this
+  //     call is intentionally not awaited so a stuck scheduler can't
+  //     block the log write.
+  if (input.userId) {
+    void maybeProcessUserTriggers(input.userId);
+  }
 }
 
 /**

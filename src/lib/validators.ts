@@ -452,6 +452,18 @@ export const enableTaskSchema = z
   .strict();
 export type EnableTaskInput = z.infer<typeof enableTaskSchema>;
 
+/**
+ * Body for POST /api/super-admin/tasks/tick — the external-cron-callable
+ * scheduler entry point. The body is intentionally empty because the
+ * tick takes no user-controllable parameters; all knobs live in
+ * SystemSetting. `.strict()` rejects any stray field so a cron job
+ * misconfigured with `{ secret: ... }` in the body fails loudly
+ * instead of silently — the secret only ever travels via the
+ * `X-Tick-Secret` header.
+ */
+export const tickRequestSchema = z.object({}).strict();
+export type TickRequestInput = z.infer<typeof tickRequestSchema>;
+
 export const clientLogEntrySchema = z.object({
   level: z.enum(["error", "warning", "info"]),
   name: z.string().max(255).nullable().optional(),

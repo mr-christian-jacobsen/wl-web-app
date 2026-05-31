@@ -1,4 +1,8 @@
-import { assignTaskInstanceSchema, enableTaskSchema } from "@/lib/validators";
+import {
+  assignTaskInstanceSchema,
+  enableTaskSchema,
+  tickRequestSchema,
+} from "@/lib/validators";
 
 import {
   ErrorResponse,
@@ -109,6 +113,61 @@ export function registerAdminTaskRoutes() {
             }),
           },
         },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/api/super-admin/tasks/tick",
+    tags: [TAGS.AdminTasks],
+    summary: "Scheduler tick — sweep due recurring + dated triggers",
+    description:
+      "External-cron-callable entry point. Auth is the shared-secret header `X-Tick-Secret` matched against the `tasks.tick.secret` SystemSetting via constant-time compare — NOT the session cookie, because cron services can't hold a NextAuth JWT. Internally claims `tasks.tick.lastRunAt` with the `tasks.tick.windowMs` window (default 5 min) so overlapping ticks no-op. On success returns aggregate stats. When the tasks kill switch (`tasks.scheduler.enabled`) is off, returns 200 with `status: 'scheduler_disabled'`.",
+    security: [{ tickSecret: [] }],
+    request: {
+      body: {
+        content: { "application/json": { schema: tickRequestSchema } },
+        required: false,
+        description:
+          "Body must be `{}` or absent — the tick takes no client parameters; every knob lives in SystemSetting.",
+      },
+    },
+    responses: {
+      200: {
+        description:
+          "Tick processed. `status: 'ok'` carries the run stats; `status: 'scheduler_disabled'` indicates the kill switch is off (no work done).",
+        content: {
+          "application/json": {
+            schema: z.union([
+              z.object({
+                status: z.literal("ok"),
+                usersProcessed: z.number().int().min(0),
+                instancesCreated: z.number().int().min(0),
+                notificationsFired: z.number().int().min(0),
+              }),
+              z.object({ status: z.literal("scheduler_disabled") }),
+            ]),
+          },
+        },
+      },
+      202: {
+        description:
+          "Tick skipped because the previous run is still within `tasks.tick.windowMs` ago. Caller can retry after the window elapses.",
+        content: {
+          "application/json": {
+            schema: z.object({
+              status: z.literal("tick_skipped"),
+              reason: z.literal("window_active"),
+            }),
+          },
+        },
+      },
+      ...validationErrorResponse(),
+      401: {
+        description:
+          "Missing or wrong `X-Tick-Secret` header (`code: 'INVALID_TICK_SECRET'`).",
+        content: { "application/json": { schema: ErrorResponse } },
       },
     },
   });
