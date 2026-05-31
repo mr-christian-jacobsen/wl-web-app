@@ -43,5 +43,12 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads|api/auth).*)"],
+  // Exclude `api/auth-cleanup` so NextAuth's `auth()` wrapper above
+  // does NOT run for that route. Inside auth(), a cryptographically-
+  // valid JWT is refreshed on the response — defeating any attempt to
+  // clear the session cookie. The cleanup handler at
+  // `src/app/api/auth-cleanup/route.ts` runs outside this middleware
+  // and can therefore actually expire the cookies before redirecting
+  // to /login. Same rationale as the existing `api/auth` exclusion.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads|api/auth|api/auth-cleanup).*)"],
 };

@@ -15,6 +15,10 @@ import { getOpenApiDocument } from "@/lib/openapi/spec";
  * Excludes:
  *   - `/api/auth/[...nextauth]` — NextAuth-internal, not a stable contract
  *   - `/api/openapi.json` — the docs endpoint itself
+ *   - `/api/auth-cleanup` — internal infrastructure that clears stale
+ *     session cookies for /profile when the user has been deleted out
+ *     from under a still-cryptographically-valid JWT; not part of the
+ *     public API surface
  */
 
 const API_ROOT = path.resolve(__dirname, "../../src/app/api");
@@ -23,7 +27,7 @@ const EXCLUDED_DIRS = new Set([
   // NextAuth's catch-all router is not part of the documented contract.
   "[...nextauth]",
 ]);
-const EXCLUDED_PATHS = new Set(["/api/openapi"]);
+const EXCLUDED_PATHS = new Set(["/api/openapi", "/api/auth-cleanup"]);
 
 function walk(dir: string): string[] {
   const out: string[] = [];
