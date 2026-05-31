@@ -490,6 +490,97 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     defaultValue: "API docs",
   },
   {
+    key: "super_admin.nav.docs_solutions",
+    name: "Super admin nav — Documented solutions",
+    defaultValue: "Solutions",
+  },
+  {
+    key: "super_admin.docs_solutions.title",
+    name: "Docs/solutions page — title",
+    defaultValue: "Documented solutions",
+  },
+  {
+    key: "super_admin.docs_solutions.description",
+    name: "Docs/solutions page — subtitle below the title",
+    defaultValue:
+      "Browse the engineering-learnings knowledge store. Read-only view of docs/solutions/ with filters over problem type, status, and tags.",
+  },
+  {
+    key: "super_admin.docs_solutions.filters.all_problem_types",
+    name: "Docs/solutions filters — 'All problem types' default option",
+    defaultValue: "All problem types",
+  },
+  {
+    key: "super_admin.docs_solutions.filters.all_statuses",
+    name: "Docs/solutions filters — 'All statuses' default option",
+    defaultValue: "All statuses",
+  },
+  {
+    key: "super_admin.docs_solutions.filters.clear_tags",
+    name: "Docs/solutions filters — 'Clear tag filters' button",
+    defaultValue: "Clear tags",
+  },
+  {
+    key: "super_admin.docs_solutions.filters.tags_label",
+    name: "Docs/solutions filters — label above the tag chips",
+    defaultValue: "Tags",
+  },
+  {
+    key: "super_admin.docs_solutions.empty",
+    name: "Docs/solutions table — message shown when no rows match the active filters",
+    defaultValue: "No docs match the current filters.",
+  },
+  {
+    key: "super_admin.docs_solutions.column.id",
+    name: "Docs/solutions table — ID column header",
+    defaultValue: "ID",
+  },
+  {
+    key: "super_admin.docs_solutions.column.title",
+    name: "Docs/solutions table — Title column header",
+    defaultValue: "Title",
+  },
+  {
+    key: "super_admin.docs_solutions.column.category",
+    name: "Docs/solutions table — Category column header",
+    defaultValue: "Category",
+  },
+  {
+    key: "super_admin.docs_solutions.column.problem_type",
+    name: "Docs/solutions table — Problem type column header",
+    defaultValue: "Problem type",
+  },
+  {
+    key: "super_admin.docs_solutions.column.status",
+    name: "Docs/solutions table — Status column header",
+    defaultValue: "Status",
+  },
+  {
+    key: "super_admin.docs_solutions.column.tags",
+    name: "Docs/solutions table — Tags column header",
+    defaultValue: "Tags",
+  },
+  {
+    key: "super_admin.docs_solutions.column.date",
+    name: "Docs/solutions table — Date column header",
+    defaultValue: "Date",
+  },
+  {
+    key: "super_admin.docs_solutions.column.source",
+    name: "Docs/solutions table — Source link column header",
+    defaultValue: "Source",
+  },
+  {
+    key: "super_admin.docs_solutions.supersedes.label",
+    name: "Docs/solutions table — prefix for 'Supersedes [id, id]' inline note",
+    defaultValue: "Supersedes",
+  },
+  {
+    key: "super_admin.docs_solutions.superseded_by.label",
+    name: "Docs/solutions table — prefix for 'Superseded by [id]' inline note",
+    defaultValue: "Superseded by",
+  },
+  {
     key: "super_admin.nav.back_to_profile",
     name: "Super admin nav — '← Back to profile' link",
     defaultValue: "← Back to profile",
