@@ -92,4 +92,5 @@ export const TAGS = {
   AdminEmails: "Super admin · Email log",
   AdminErrors: "Super admin · Error log",
   AdminSettings: "Super admin · System settings",
+  AdminTasks: "Super admin · Tasks",
 } as const;

@@ -424,6 +424,21 @@ export const updateLogRetentionSchema = z.object({
 });
 export type UpdateLogRetentionInput = z.infer<typeof updateLogRetentionSchema>;
 
+/**
+ * Body for POST /api/super-admin/tasks/{id}/assign — admin picks a
+ * task definition (the `{id}` segment) and a target user. Per U4 in
+ * the tasks plan, the handler then creates a pending TaskInstance for
+ * that user, evaluates the predicate immediately, and either silently
+ * auto-completes (matching predicate, AE5b) or dispatches a
+ * task_created notification + email (non-matching or no predicate,
+ * AE5). `.strict()` rejects any stray field so the admin client and
+ * server stay in lockstep.
+ */
+export const assignTaskInstanceSchema = z
+  .object({ userId: z.string().trim().min(1, "userId is required") })
+  .strict();
+export type AssignTaskInstanceInput = z.infer<typeof assignTaskInstanceSchema>;
+
 export const clientLogEntrySchema = z.object({
   level: z.enum(["error", "warning", "info"]),
   name: z.string().max(255).nullable().optional(),

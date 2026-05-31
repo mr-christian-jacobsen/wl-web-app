@@ -7,6 +7,7 @@
 import {
   adminCreateUserSchema,
   adminUpdateUserSchema,
+  assignTaskInstanceSchema,
   autoTranslateRequestSchema,
   changePasswordSchema,
   clientLogEntrySchema,
@@ -66,3 +67,4 @@ registry.register("TestEmailInput", testEmailSchema);
 registry.register("UpdateTranslateSettingsInput", updateTranslateSettingsSchema);
 registry.register("UpdateLogRetentionInput", updateLogRetentionSchema);
 registry.register("ClientLogEntryInput", clientLogEntrySchema);
+registry.register("AssignTaskInstanceInput", assignTaskInstanceSchema);

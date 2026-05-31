@@ -27,6 +27,11 @@ export const SETTING_KEYS = {
   translateOpenaiApiKey: "translate.openai.apiKey",
   translateOpenaiModel: "translate.openai.model",
   translateDeeplApiKey: "translate.deepl.apiKey",
+  // Tasks subsystem operational knobs (KTD8 in
+  // docs/plans/2026-05-31-001-feat-tasks-and-notifications-plan.md).
+  // `tasks.scheduler.enabled` is the runtime kill switch threaded as
+  // the first short-circuit in every dispatch entry point. Default `true`.
+  tasksSchedulerEnabled: "tasks.scheduler.enabled",
 } as const;
 
 /** Built-in defaults used when no override row exists in SystemSetting. */
@@ -65,6 +70,7 @@ const ENV_FALLBACK: Record<string, string | undefined> = {
   [SETTING_KEYS.translateOpenaiApiKey]: process.env.OPENAI_API_KEY,
   [SETTING_KEYS.translateOpenaiModel]: process.env.OPENAI_MODEL,
   [SETTING_KEYS.translateDeeplApiKey]: process.env.DEEPL_API_KEY,
+  [SETTING_KEYS.tasksSchedulerEnabled]: undefined,
 };
 
 /** Resolve a setting: DB value if a row exists (even if blank), else env. */
@@ -240,6 +246,27 @@ export async function getTranslateConfigForSend(): Promise<TranslateSendConfig |
   const apiKey = s[SETTING_KEYS.translateDeeplApiKey]?.trim();
   if (!apiKey) return null;
   return { provider, apiKey };
+}
+
+/**
+ * Tasks-subsystem runtime kill switch (KTD8). Threaded as the FIRST
+ * short-circuit in every dispatch entry point (signup hook,
+ * manual-assign, backfill, recurring scheduler, dated scheduler, tick
+ * endpoint, notification dispatch). When `false`, those paths return
+ * silently without creating instances or firing notifications/emails.
+ *
+ * Default `true` — interpreted from the absence of a row, an empty
+ * value, or anything other than the literal string `"false"`. The
+ * setting is read at point of use (never cached at module load) so
+ * an admin flip from /super-admin/system-settings takes effect on the
+ * next call without a redeploy.
+ */
+export async function isTasksSchedulerEnabled(): Promise<boolean> {
+  const raw = await getSetting(SETTING_KEYS.tasksSchedulerEnabled);
+  if (raw === undefined || raw === null) return true;
+  const v = raw.trim().toLowerCase();
+  if (v === "false" || v === "0" || v === "off" || v === "no") return false;
+  return true;
 }
 
 /** Read SMTP settings including the password — server-only, for actual sending. */

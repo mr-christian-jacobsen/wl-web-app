@@ -243,6 +243,40 @@ export const SyncTranslationsResultDTO = registry.register(
     .openapi("SyncTranslationsResult"),
 );
 
+/**
+ * Per-user task instance returned by the admin assign endpoint (and
+ * later by the user list / admin overview endpoints in U8/U9). The
+ * shape matches the Prisma row directly because the assign endpoint
+ * returns `manuallyAssignInstance`'s output verbatim.
+ */
+export const TaskInstanceDTO = registry.register(
+  "TaskInstance",
+  z
+    .object({
+      id: z.string(),
+      taskId: z.string(),
+      userId: z.string(),
+      status: z.enum(["pending", "completed"]).openapi({ example: "pending" }),
+      source: z
+        .enum(["predicate", "user", "admin"])
+        .nullable()
+        .openapi({
+          description:
+            "Provenance of the completed status. Null while the instance is still pending.",
+        }),
+      signature: z.string().openapi({
+        description:
+          'Uniqueness key per KTD10 — e.g. "signup", "manual:<iso>", "backfill:<iso>", "recurring:<iso>", "specific-date:<YYYY-MM-DD>".',
+      }),
+      completedAt: z.string().datetime().nullable(),
+      assignedByAdminId: z.string().nullable(),
+      completedByAdminId: z.string().nullable(),
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+    })
+    .openapi("TaskInstance"),
+);
+
 // ---------------------------------------------------------------------------
 // Inline request schemas — these don't live in `validators.ts` because they
 // only describe URL/header shapes for the OpenAPI document, not body parsing.

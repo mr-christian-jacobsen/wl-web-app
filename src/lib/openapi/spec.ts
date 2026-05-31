@@ -6,6 +6,7 @@ import "./schemas";
 import { registerAdminLanguageRoutes } from "./routes/admin-languages";
 import { registerAdminSettingsRoutes } from "./routes/admin-settings";
 import { registerAdminSurveyRoutes } from "./routes/admin-surveys";
+import { registerAdminTaskRoutes } from "./routes/admin-tasks";
 import { registerAdminTemplateRoutes } from "./routes/admin-templates";
 import { registerAdminUserRoutes } from "./routes/admin-users";
 import { registerAuthRoutes } from "./routes/auth";
@@ -28,6 +29,7 @@ function registerAll() {
   registerAdminSurveyRoutes();
   registerAdminLanguageRoutes();
   registerAdminSettingsRoutes();
+  registerAdminTaskRoutes();
   registered = true;
 }
 
@@ -58,6 +60,7 @@ export function generateOpenApiDocument() {
       { name: "Super admin · Email log", description: "Inspect / resend prior emails." },
       { name: "Super admin · Error log", description: "Captured error/warning/info events." },
       { name: "Super admin · System settings", description: "SMTP, translate provider, retention." },
+      { name: "Super admin · Tasks", description: "Task definitions and instance lifecycle." },
     ],
   });
 }
