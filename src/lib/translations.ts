@@ -437,6 +437,24 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
       "Turn this on to stop receiving emails when a new task is created for you. You'll still see in-app notifications — those can't be disabled.",
   },
 
+  // ─── Dashboard shared nav (`src/app/(dashboard)/layout.tsx`) ─────────────
+  {
+    key: "dashboard.nav.app_name",
+    name: "Dashboard header — app-name link (top-left)",
+    description: "Renders the product name as a link back to the public landing page.",
+    defaultValue: "wl-web-app",
+  },
+  {
+    key: "dashboard.nav.profile",
+    name: "Dashboard header — 'Profile' nav link",
+    defaultValue: "Profile",
+  },
+  {
+    key: "dashboard.nav.tasks",
+    name: "Dashboard header — 'Tasks' nav link",
+    defaultValue: "Tasks",
+  },
+
   // ─── Tasks (user /tasks page + notification bell) ────────────────────────
   {
     key: "tasks.empty.title",
@@ -462,6 +480,32 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     key: "tasks.section.completed",
     name: "Tasks — completed section heading (collapsed by default)",
     defaultValue: "Completed",
+  },
+  {
+    key: "tasks.page.title",
+    name: "Tasks — page heading",
+    defaultValue: "Your tasks",
+  },
+  {
+    key: "tasks.page.subtitle",
+    name: "Tasks — subtitle under the heading",
+    defaultValue: "Track what's outstanding and what you've finished.",
+  },
+  {
+    key: "tasks.deep_link",
+    name: "Tasks — 'Go to' deep-link label on rows with a predicate deepLinkPath",
+    defaultValue: "Go to",
+  },
+  {
+    key: "tasks.mark_complete_failed",
+    name: "Tasks — inline error shown when POST /api/tasks/{id}/complete fails",
+    defaultValue: "Could not mark complete — please try again.",
+  },
+  {
+    key: "tasks.completed.count",
+    name: "Tasks — '{n} completed' summary label on the collapsed section",
+    description: "Uses `{n}` as the count placeholder.",
+    defaultValue: "{n} completed",
   },
   {
     key: "notifications.bell.aria_label",

@@ -12,6 +12,7 @@ import { registerAdminUserRoutes } from "./routes/admin-users";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerMiscPublicRoutes } from "./routes/misc-public";
 import { registerProfileRoutes } from "./routes/profile";
+import { registerTaskRoutes } from "./routes/tasks";
 
 // Idempotent — `registerPath` does throw on duplicate path+method pairs, so
 // we guard against the second invocation. The dev server hot-reloads the
@@ -30,6 +31,7 @@ function registerAll() {
   registerAdminLanguageRoutes();
   registerAdminSettingsRoutes();
   registerAdminTaskRoutes();
+  registerTaskRoutes();
   registered = true;
 }
 
@@ -61,6 +63,7 @@ export function generateOpenApiDocument() {
       { name: "Super admin · Error log", description: "Captured error/warning/info events." },
       { name: "Super admin · System settings", description: "SMTP, translate provider, retention." },
       { name: "Super admin · Tasks", description: "Task definitions and instance lifecycle." },
+      { name: "Tasks", description: "The signed-in user's task instances." },
     ],
   });
 }
