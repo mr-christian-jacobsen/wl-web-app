@@ -32,6 +32,16 @@ export const SETTING_KEYS = {
   // `tasks.scheduler.enabled` is the runtime kill switch threaded as
   // the first short-circuit in every dispatch entry point. Default `true`.
   tasksSchedulerEnabled: "tasks.scheduler.enabled",
+  // Per-batch user count during backfill-on-enable (KTD9 + U5). Default
+  // `500` keeps each batch small enough that SQLite's single-writer
+  // model doesn't lock the app for an extended window.
+  tasksBackfillBatchSize: "tasks.backfill.batchSize",
+  // Hard cap on email dispatch per enable event. When the eligible
+  // backfill target count exceeds this and the admin chose `notify`,
+  // the enable endpoint refuses with a 4xx + structured message so
+  // the admin can either raise the cap temporarily or run silent then
+  // notify selectively. Default `1000`. Silent backfill is unaffected.
+  tasksBackfillMaxEmailsPerEnable: "tasks.backfill.maxEmailsPerEnable",
 } as const;
 
 /** Built-in defaults used when no override row exists in SystemSetting. */
@@ -71,7 +81,13 @@ const ENV_FALLBACK: Record<string, string | undefined> = {
   [SETTING_KEYS.translateOpenaiModel]: process.env.OPENAI_MODEL,
   [SETTING_KEYS.translateDeeplApiKey]: process.env.DEEPL_API_KEY,
   [SETTING_KEYS.tasksSchedulerEnabled]: undefined,
+  [SETTING_KEYS.tasksBackfillBatchSize]: undefined,
+  [SETTING_KEYS.tasksBackfillMaxEmailsPerEnable]: undefined,
 };
+
+/** Built-in defaults for the tasks-backfill knobs, per KTD8 / U5. */
+export const DEFAULT_TASKS_BACKFILL_BATCH_SIZE = 500 as const;
+export const DEFAULT_TASKS_BACKFILL_MAX_EMAILS_PER_ENABLE = 1000 as const;
 
 /** Resolve a setting: DB value if a row exists (even if blank), else env. */
 export async function getSetting(key: string): Promise<string | undefined> {
@@ -267,6 +283,48 @@ export async function isTasksSchedulerEnabled(): Promise<boolean> {
   const v = raw.trim().toLowerCase();
   if (v === "false" || v === "0" || v === "off" || v === "no") return false;
   return true;
+}
+
+/**
+ * Parse a positive-integer setting value. Returns `fallback` when the row
+ * is absent, blank, non-numeric, or non-positive — admins should never
+ * accidentally trip a batch size of 0 (would infinite-loop) or negative
+ * caps. Resolved at point of use, never cached at module load.
+ */
+function parsePositiveIntSetting(
+  raw: string | undefined,
+  fallback: number,
+): number {
+  if (raw === undefined || raw === null) return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.floor(n);
+}
+
+/**
+ * Batch size for `runBackfillForDefinition` (KTD9 / U5). Default 500
+ * keeps SQLite's single-writer model from being locked for too long on
+ * a large user base. Read at point of use so an admin flip from
+ * /super-admin/system-settings takes effect on the next call.
+ */
+export async function getBackfillBatchSize(): Promise<number> {
+  const raw = await getSetting(SETTING_KEYS.tasksBackfillBatchSize);
+  return parsePositiveIntSetting(raw, DEFAULT_TASKS_BACKFILL_BATCH_SIZE);
+}
+
+/**
+ * Maximum number of emails dispatched per backfill-on-enable when the
+ * admin chose `notify` (KTD8 / U5). The enable endpoint pre-checks the
+ * eligible target count against this cap and refuses with a 4xx +
+ * structured message when it would be exceeded — silent backfill is
+ * not affected. Default 1000.
+ */
+export async function getMaxEmailsPerEnable(): Promise<number> {
+  const raw = await getSetting(SETTING_KEYS.tasksBackfillMaxEmailsPerEnable);
+  return parsePositiveIntSetting(
+    raw,
+    DEFAULT_TASKS_BACKFILL_MAX_EMAILS_PER_ENABLE,
+  );
 }
 
 /** Read SMTP settings including the password — server-only, for actual sending. */

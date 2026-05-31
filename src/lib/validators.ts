@@ -439,6 +439,19 @@ export const assignTaskInstanceSchema = z
   .strict();
 export type AssignTaskInstanceInput = z.infer<typeof assignTaskInstanceSchema>;
 
+/**
+ * Body for POST /api/super-admin/tasks/{id}/enable — admin flips a
+ * task definition from disabled to enabled and chooses whether the
+ * backfill notifies existing users (in-app + email) or runs silently.
+ * Default in the BackfillDialog is silent. `.strict()` keeps the
+ * contract narrow so a typo in the client doesn't accidentally
+ * trigger a 1k-email blast.
+ */
+export const enableTaskSchema = z
+  .object({ notify: z.boolean() })
+  .strict();
+export type EnableTaskInput = z.infer<typeof enableTaskSchema>;
+
 export const clientLogEntrySchema = z.object({
   level: z.enum(["error", "warning", "info"]),
   name: z.string().max(255).nullable().optional(),

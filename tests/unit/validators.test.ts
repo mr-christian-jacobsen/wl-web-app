@@ -5,6 +5,7 @@ import {
   adminUpdateUserSchema,
   changePasswordSchema,
   createEmailTemplateSchema,
+  enableTaskSchema,
   forgotPasswordSchema,
   loginSchema,
   resendVerificationSchema,
@@ -188,5 +189,31 @@ describe("validators", () => {
         newPassword: "12345678",
       }).success,
     ).toBe(true);
+  });
+
+  // U5: enable-task body — `notify` must be present and boolean. Strict
+  // mode rejects extra fields so a typo in the client doesn't
+  // accidentally trigger a 1k-email blast through a sloppy default.
+  describe("enableTaskSchema", () => {
+    it("accepts { notify: true } and { notify: false }", () => {
+      expect(enableTaskSchema.safeParse({ notify: true }).success).toBe(true);
+      expect(enableTaskSchema.safeParse({ notify: false }).success).toBe(true);
+    });
+
+    it("rejects missing notify", () => {
+      expect(enableTaskSchema.safeParse({}).success).toBe(false);
+    });
+
+    it("rejects non-boolean notify (string 'true' is a common client mistake)", () => {
+      expect(enableTaskSchema.safeParse({ notify: "true" }).success).toBe(false);
+      expect(enableTaskSchema.safeParse({ notify: 1 }).success).toBe(false);
+      expect(enableTaskSchema.safeParse({ notify: null }).success).toBe(false);
+    });
+
+    it("rejects unknown extra fields (strict mode)", () => {
+      expect(
+        enableTaskSchema.safeParse({ notify: true, force: true }).success,
+      ).toBe(false);
+    });
   });
 });

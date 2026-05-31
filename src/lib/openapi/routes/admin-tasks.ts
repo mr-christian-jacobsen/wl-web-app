@@ -1,4 +1,4 @@
-import { assignTaskInstanceSchema } from "@/lib/validators";
+import { assignTaskInstanceSchema, enableTaskSchema } from "@/lib/validators";
 
 import {
   ErrorResponse,
@@ -11,10 +11,10 @@ import {
 import { IdParam, TaskInstanceDTO } from "../schemas";
 
 /**
- * Admin tasks routes — v1 only registers the manual-assign endpoint
- * shipped in U4. The full CRUD surface (list / create / update / delete
- * / enable / tick) lands in U7–U10 and will add its own registrations
- * to this file.
+ * Admin tasks routes — registers the manual-assign endpoint (U4) and
+ * the backfill-on-enable endpoints (U5). The full definition CRUD
+ * surface (list / create / update / delete / tick) lands in U7–U10
+ * and will add its own registrations to this file.
  */
 export function registerAdminTaskRoutes() {
   registry.registerPath({
@@ -51,6 +51,91 @@ export function registerAdminTaskRoutes() {
       409: {
         description:
           "Tasks scheduler is disabled (`tasks.scheduler.enabled` SystemSetting is false) — manual assign refused.",
+        content: { "application/json": { schema: ErrorResponse } },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/api/super-admin/tasks/{id}/enable",
+    tags: [TAGS.AdminTasks],
+    summary: "Enable a task definition and run backfill",
+    description:
+      "Flips `Task.enabled` from false to true and kicks off a fire-and-forget backfill that creates one TaskInstance per existing user without an open instance. The admin chooses per call whether the backfill notifies (in-app + email per non-matching predicate) or runs silently. Returns 202 immediately; the backfill continues in the background. Returns 409 ALREADY_ENABLED if already enabled, 422 EMAIL_CAP_EXCEEDED when notify=true and eligible target count exceeds `tasks.backfill.maxEmailsPerEnable`.",
+    security: [{ sessionCookie: [] }],
+    request: {
+      params: IdParam,
+      body: {
+        content: { "application/json": { schema: enableTaskSchema } },
+        required: true,
+      },
+    },
+    responses: {
+      202: {
+        description:
+          "Backfill started — fire-and-forget. `eligible` is the count of users targeted at flip time.",
+        content: {
+          "application/json": {
+            schema: z.object({
+              status: z.literal("backfill_started"),
+              eligible: z.number().int().min(0),
+            }),
+          },
+        },
+      },
+      ...validationErrorResponse(),
+      ...unauthorizedResponses(),
+      404: {
+        description: "Task definition not found.",
+        content: { "application/json": { schema: ErrorResponse } },
+      },
+      409: {
+        description:
+          "Task is already enabled — clicking Enable twice produces this rather than a duplicate backfill (`code: 'ALREADY_ENABLED'`).",
+        content: { "application/json": { schema: ErrorResponse } },
+      },
+      422: {
+        description:
+          "Email cap exceeded (`code: 'EMAIL_CAP_EXCEEDED'`). Body carries `eligible`, `cap`, and an `action` hint. Silent backfill is unaffected by this cap.",
+        content: {
+          "application/json": {
+            schema: z.object({
+              error: z.string(),
+              code: z.literal("EMAIL_CAP_EXCEEDED"),
+              eligible: z.number().int().min(0),
+              cap: z.number().int().min(1),
+              action: z.string(),
+            }),
+          },
+        },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/api/super-admin/tasks/{id}/enable/count",
+    tags: [TAGS.AdminTasks],
+    summary: "Count users that would receive an instance on enable",
+    description:
+      "Returns the number of users without an open pending TaskInstance for this task — the same population `runBackfillForDefinition` would target. Used by the BackfillDialog to render 'N users will get an instance' before the admin confirms.",
+    security: [{ sessionCookie: [] }],
+    request: {
+      params: IdParam,
+    },
+    responses: {
+      200: {
+        description: "The eligible user count.",
+        content: {
+          "application/json": {
+            schema: z.object({ count: z.number().int().min(0) }),
+          },
+        },
+      },
+      ...unauthorizedResponses(),
+      404: {
+        description: "Task definition not found.",
         content: { "application/json": { schema: ErrorResponse } },
       },
     },
