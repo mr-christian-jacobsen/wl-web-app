@@ -1,6 +1,8 @@
 ---
 title: Store avatars as SQLite BLOBs with a client-side square crop
 date: 2026-05-29
+id: SOL-2026-001
+status: active
 category: docs/solutions/architecture-patterns
 module: Profile / Avatars
 problem_type: architecture_pattern

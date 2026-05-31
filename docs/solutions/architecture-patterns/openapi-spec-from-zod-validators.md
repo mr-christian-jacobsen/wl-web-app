@@ -1,6 +1,8 @@
 ---
 title: Generate the OpenAPI spec from Zod validators with a drift-detection test
 date: 2026-05-29
+id: SOL-2026-004
+status: active
 category: docs/solutions/architecture-patterns
 module: API documentation
 problem_type: architecture_pattern

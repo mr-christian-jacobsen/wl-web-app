@@ -1,6 +1,8 @@
 ---
 title: GitHub push protection blocks example API keys in secret-scrubber test fixtures
 date: 2026-05-29
+id: SOL-2026-010
+status: active
 category: docs/solutions/workflow-issues
 module: tests/unit/log.test.ts
 problem_type: workflow_issue
@@ -16,7 +18,7 @@ related_components:
 tags:
   - github-push-protection
   - secret-scanning
-  - secret-scrubber
+  - secret-scrubbing
   - git-reset-soft
   - test-fixtures
 ---

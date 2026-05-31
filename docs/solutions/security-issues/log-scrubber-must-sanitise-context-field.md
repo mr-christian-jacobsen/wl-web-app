@@ -1,6 +1,8 @@
 ---
 title: Log secret-scrubber must sanitise the context field, not just message and stack
 date: 2026-05-29
+id: SOL-2026-008
+status: active
 category: docs/solutions/security-issues
 module: Logging / observability (src/lib/log.server.ts)
 problem_type: security_issue

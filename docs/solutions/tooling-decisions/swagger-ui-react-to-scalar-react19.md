@@ -1,6 +1,8 @@
 ---
 title: Use Scalar instead of swagger-ui-react for OpenAPI docs on React 19
 date: 2026-05-29
+id: SOL-2026-009
+status: active
 category: docs/solutions/tooling-decisions
 module: API documentation UI
 problem_type: tooling_decision

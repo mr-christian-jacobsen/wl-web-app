@@ -1,6 +1,8 @@
 ---
 title: DB-backed operational config with .env fallback and per-send rebuild
 date: 2026-05-29
+id: SOL-2026-002
+status: active
 category: docs/solutions/architecture-patterns
 module: System settings / email
 problem_type: architecture_pattern
