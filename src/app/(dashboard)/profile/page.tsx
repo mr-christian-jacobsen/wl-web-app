@@ -26,6 +26,7 @@ export default async function ProfilePage() {
         isSuperAdmin: true,
         languageId: true,
         themePreference: true,
+        taskEmailsOptOut: true,
       },
     }),
     prisma.language.findMany({

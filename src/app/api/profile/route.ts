@@ -24,7 +24,13 @@ export async function PATCH(req: Request) {
 
   const me = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, name: true, languageId: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      languageId: true,
+      taskEmailsOptOut: true,
+    },
   });
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -43,9 +49,10 @@ export async function PATCH(req: Request) {
     }
   }
 
-  // Apply non-email changes immediately (`name` and `languageId`).
+  // Apply non-email changes immediately (`name`, `languageId`, `taskEmailsOptOut`).
   let updatedName: string | undefined;
   let updatedLanguageId: string | null | undefined;
+  let updatedTaskEmailsOptOut: boolean | undefined;
   const directUpdate: Prisma.UserUpdateInput = {};
   if (parsed.data.name !== undefined && parsed.data.name !== me.name) {
     directUpdate.name = parsed.data.name;
@@ -59,14 +66,21 @@ export async function PATCH(req: Request) {
         ? { disconnect: true }
         : { connect: { id: parsed.data.languageId } };
   }
+  if (
+    parsed.data.taskEmailsOptOut !== undefined &&
+    parsed.data.taskEmailsOptOut !== me.taskEmailsOptOut
+  ) {
+    directUpdate.taskEmailsOptOut = parsed.data.taskEmailsOptOut;
+  }
   if (Object.keys(directUpdate).length > 0) {
     const updated = await prisma.user.update({
       where: { id: me.id },
       data: directUpdate,
-      select: { name: true, languageId: true },
+      select: { name: true, languageId: true, taskEmailsOptOut: true },
     });
     updatedName = updated.name;
     updatedLanguageId = updated.languageId;
+    updatedTaskEmailsOptOut = updated.taskEmailsOptOut;
   }
 
   // Email change requires confirmation via the new address.
@@ -133,6 +147,10 @@ export async function PATCH(req: Request) {
       email: me.email, // unchanged until they confirm
       name: updatedName ?? me.name,
       languageId: updatedLanguageId !== undefined ? updatedLanguageId : me.languageId,
+      taskEmailsOptOut:
+        updatedTaskEmailsOptOut !== undefined
+          ? updatedTaskEmailsOptOut
+          : me.taskEmailsOptOut,
     },
     pendingEmailChange: pendingEmail
       ? { newEmail: pendingEmail, message: `We sent a confirmation link to ${pendingEmail}.` }

@@ -254,7 +254,7 @@ model EmailVerificationToken {
 model Email {
   id          String   @id @default(cuid())
   to          String
-  type        String // "user_invitation" | "email_verification" | "password_reset" | "email_change_confirmation"
+  type        String // "user_invitation" | "email_verification" | "password_reset" | "email_change_confirmation" | "task_created"
   templateKey String? // null when the hardcoded fallback was rendered
   subject     String
   bodyText    String

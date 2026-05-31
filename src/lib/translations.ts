@@ -422,6 +422,62 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     name: "Profile — Sign-out button",
     defaultValue: "Sign out",
   },
+  {
+    key: "profile.task_emails_optout.label",
+    name: "Profile — Task-email opt-out toggle label",
+    description:
+      "Label next to the checkbox on /profile that disables task notification emails.",
+    defaultValue: "Don't email me about new tasks",
+  },
+  {
+    key: "profile.task_emails_optout.description",
+    name: "Profile — Task-email opt-out section description",
+    description: "Helper text under the toggle explaining the in-app notification floor.",
+    defaultValue:
+      "Turn this on to stop receiving emails when a new task is created for you. You'll still see in-app notifications — those can't be disabled.",
+  },
+
+  // ─── Tasks (user /tasks page + notification bell) ────────────────────────
+  {
+    key: "tasks.empty.title",
+    name: "Tasks — empty-state heading on /tasks when no pending instances",
+    defaultValue: "You're all caught up",
+  },
+  {
+    key: "tasks.empty.body",
+    name: "Tasks — empty-state body under the heading",
+    defaultValue: "Nothing to do right now. We'll let you know when something comes up.",
+  },
+  {
+    key: "tasks.mark_complete",
+    name: "Tasks — per-row 'Mark complete' button",
+    defaultValue: "Mark complete",
+  },
+  {
+    key: "tasks.section.pending",
+    name: "Tasks — pending section heading",
+    defaultValue: "To do",
+  },
+  {
+    key: "tasks.section.completed",
+    name: "Tasks — completed section heading (collapsed by default)",
+    defaultValue: "Completed",
+  },
+  {
+    key: "notifications.bell.aria_label",
+    name: "Notifications — bell-button aria-label",
+    defaultValue: "Notifications",
+  },
+  {
+    key: "notifications.empty",
+    name: "Notifications — empty-state message inside the bell dropdown",
+    defaultValue: "No notifications yet.",
+  },
+  {
+    key: "notifications.mark_all_read",
+    name: "Notifications — 'Mark all as read' button inside the dropdown",
+    defaultValue: "Mark all as read",
+  },
 
   // ─── Super admin shared nav ──────────────────────────────────────────────
   {
@@ -872,6 +928,7 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   { key: "super_admin.emails.type.email_verification", name: "Email type — email verification", defaultValue: "Email verification" },
   { key: "super_admin.emails.type.password_reset", name: "Email type — password reset", defaultValue: "Password reset" },
   { key: "super_admin.emails.type.email_change_confirmation", name: "Email type — email change confirmation", defaultValue: "Email change" },
+  { key: "super_admin.emails.type.task_created", name: "Email type — task created", defaultValue: "Task created" },
   // Email status labels (rendered from the `status` enum column)
   { key: "super_admin.emails.status.sent", name: "Email status — sent", defaultValue: "sent" },
   { key: "super_admin.emails.status.pending", name: "Email status — pending", defaultValue: "pending" },

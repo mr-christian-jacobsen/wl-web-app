@@ -28,6 +28,7 @@ export const ProfileUserDTO = registry.register(
       email: z.string().email(),
       name: z.string(),
       languageId: z.string().nullable(),
+      taskEmailsOptOut: z.boolean(),
     })
     .openapi("ProfileUser"),
 );

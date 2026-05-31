@@ -63,9 +63,19 @@ export const updateProfileSchema = z
     languageId: z
       .union([z.string().trim().min(1), z.null()])
       .optional(),
+    /**
+     * Opt-out toggle for `task_created` notification emails. In-app
+     * notifications cannot be disabled — only the email side-channel.
+     * Defaults to `false` (emails enabled) on the User row, per KTD5.
+     */
+    taskEmailsOptOut: z.boolean().optional(),
   })
   .refine(
-    (d) => d.name !== undefined || d.email !== undefined || d.languageId !== undefined,
+    (d) =>
+      d.name !== undefined ||
+      d.email !== undefined ||
+      d.languageId !== undefined ||
+      d.taskEmailsOptOut !== undefined,
     {
       message: "Provide at least one field to update",
     },

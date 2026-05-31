@@ -14,6 +14,8 @@ export const authConfig: NextAuthConfig = {
         token.isSuperAdmin = (user as { isSuperAdmin?: boolean }).isSuperAdmin ?? false;
         token.themePreference =
           (user as { themePreference?: string | null }).themePreference ?? null;
+        token.taskEmailsOptOut =
+          (user as { taskEmailsOptOut?: boolean }).taskEmailsOptOut ?? false;
       }
       if (trigger === "update" && session) {
         const s = session as {
@@ -22,12 +24,15 @@ export const authConfig: NextAuthConfig = {
           avatarUrl?: string | null;
           isSuperAdmin?: boolean;
           themePreference?: string | null;
+          taskEmailsOptOut?: boolean;
         };
         if (typeof s.name === "string") token.name = s.name;
         if (typeof s.email === "string") token.email = s.email;
         if (s.avatarUrl !== undefined) token.avatarUrl = s.avatarUrl;
         if (typeof s.isSuperAdmin === "boolean") token.isSuperAdmin = s.isSuperAdmin;
         if (s.themePreference !== undefined) token.themePreference = s.themePreference;
+        if (typeof s.taskEmailsOptOut === "boolean")
+          token.taskEmailsOptOut = s.taskEmailsOptOut;
       }
       return token;
     },
@@ -38,6 +43,7 @@ export const authConfig: NextAuthConfig = {
       session.user.avatarUrl = (token.avatarUrl as string | null) ?? null;
       session.user.isSuperAdmin = (token.isSuperAdmin as boolean) ?? false;
       session.user.themePreference = (token.themePreference as string | null) ?? null;
+      session.user.taskEmailsOptOut = (token.taskEmailsOptOut as boolean) ?? false;
       return session;
     },
   },
