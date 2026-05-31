@@ -80,10 +80,12 @@ export function isKnownProblemType(value: string): value is KnownProblemType {
 
 export const KNOWN_TAGS = [
   "404",
+  "admin-ui",
   "api-documentation",
   "app-router",
   "avatars",
   "blob",
+  "catalog",
   "configuration",
   "dark-mode",
   "data-leak",
@@ -112,6 +114,7 @@ export const KNOWN_TAGS = [
   "react-cache",
   "react-easy-crop",
   "redaction",
+  "registry",
   "route-segment",
   "routing",
   "scalar",
@@ -128,6 +131,7 @@ export const KNOWN_TAGS = [
   "test-fixtures",
   "theme",
   "translations",
+  "vitest",
   "windows",
   "zod",
 ] as const satisfies ReadonlyArray<string>;
