@@ -27,71 +27,64 @@
 
 import { prisma } from "@/lib/db";
 import { logError } from "@/lib/log.server";
+import {
+  KNOWN_PREDICATE_KEYS,
+  PREDICATE_CATALOG,
+  type KnownPredicateKey,
+  type PredicateCatalogEntry,
+} from "@/lib/predicates.catalog";
 
-export type PredicateDef = {
-  /** Stable identifier, e.g. `avatar_present`. */
-  key: string;
-  /** Short admin-facing label, e.g. "Profile picture is set". */
-  name: string;
-  /** Longer hint shown next to the dropdown choice. */
-  description: string;
-  /** Where the user should go to satisfy the predicate, if any. */
-  deepLinkPath?: string;
+// Re-export the catalog-only surface so existing server callers can keep
+// importing it from `@/lib/predicates`. Client callers should import
+// directly from `@/lib/predicates.catalog` to avoid the server bundle.
+export { KNOWN_PREDICATE_KEYS };
+export type { KnownPredicateKey };
+
+export type PredicateDef = PredicateCatalogEntry & {
   /** Returns `true` when the user currently satisfies the check. */
   evaluate: (userId: string) => Promise<boolean>;
 };
 
-export const KNOWN_PREDICATES = [
-  {
-    key: "avatar_present",
-    name: "Profile picture is set",
-    description: "True once the user has uploaded an avatar on /profile.",
-    deepLinkPath: "/profile",
-    async evaluate(userId: string): Promise<boolean> {
-      const row = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { avatarUrl: true },
-      });
-      return row?.avatarUrl != null;
-    },
+// Server-side evaluators keyed by predicate key. Kept as a sibling to the
+// catalog so the static metadata can ship to the client without dragging
+// Prisma along. Adding a new predicate means appending to PREDICATE_CATALOG
+// (in `predicates.catalog.ts`) AND adding the matching evaluator here —
+// the assertion below will fail at module load if the two diverge.
+const EVALUATORS: Record<KnownPredicateKey, (userId: string) => Promise<boolean>> = {
+  async avatar_present(userId: string): Promise<boolean> {
+    const row = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+    return row?.avatarUrl != null;
   },
-  {
-    key: "email_verified",
-    name: "Email address is verified",
-    description: "True once the user has clicked the verification link in their welcome email.",
-    async evaluate(userId: string): Promise<boolean> {
-      const row = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { emailVerifiedAt: true },
-      });
-      return row?.emailVerifiedAt != null;
-    },
+  async email_verified(userId: string): Promise<boolean> {
+    const row = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerifiedAt: true },
+    });
+    return row?.emailVerifiedAt != null;
   },
-  {
-    key: "language_set",
-    name: "Preferred language is chosen",
-    description: "True once the user has picked a preferred language on /profile.",
-    deepLinkPath: "/profile",
-    async evaluate(userId: string): Promise<boolean> {
-      const row = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { languageId: true },
-      });
-      return row?.languageId != null;
-    },
+  async language_set(userId: string): Promise<boolean> {
+    const row = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { languageId: true },
+    });
+    return row?.languageId != null;
   },
-] as const satisfies ReadonlyArray<PredicateDef>;
-
-export type KnownPredicateKey = (typeof KNOWN_PREDICATES)[number]["key"];
+};
 
 /**
- * Stable list of valid predicate keys, exported so validators (U7) and
- * the admin editor can `.includes()` against it without re-deriving
- * from the registry tuple. Order matches `KNOWN_PREDICATES`.
+ * The runtime registry: catalog metadata + evaluator closures. Built by
+ * walking `PREDICATE_CATALOG` so adding a new predicate stays a
+ * single-source-of-truth edit (catalog entry + matching evaluator).
  */
-export const KNOWN_PREDICATE_KEYS = KNOWN_PREDICATES.map(
-  (p) => p.key,
-) as ReadonlyArray<KnownPredicateKey>;
+export const KNOWN_PREDICATES: ReadonlyArray<PredicateDef> = PREDICATE_CATALOG.map(
+  (entry) => ({
+    ...entry,
+    evaluate: EVALUATORS[entry.key],
+  }),
+);
 
 const PREDICATE_BY_KEY: ReadonlyMap<string, PredicateDef> = new Map(
   KNOWN_PREDICATES.map((p) => [p.key, p]),

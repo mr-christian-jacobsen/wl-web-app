@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
 import { BackfillDialog } from "@/components/tasks/BackfillDialog";
 import { useTranslation } from "@/components/TranslationsProvider";
-import { KNOWN_PREDICATES } from "@/lib/predicates";
+import { PREDICATE_CATALOG } from "@/lib/predicates.catalog";
 
 /**
  * Admin task definition editor (U7). One form, one save — the whole
@@ -331,7 +331,7 @@ export function AdminTaskEditor({ task }: { task: Task }) {
                 {t("super_admin.tasks.editor.predicate_manual")}
               </option>
               <option disabled>──────────</option>
-              {KNOWN_PREDICATES.map((p) => (
+              {PREDICATE_CATALOG.map((p) => (
                 <option key={p.key} value={p.key}>
                   {p.name}
                 </option>
@@ -340,7 +340,7 @@ export function AdminTaskEditor({ task }: { task: Task }) {
             <p className="mt-1 text-xs text-slate-500">
               {predicateKey === MANUAL_SENTINEL
                 ? t("super_admin.tasks.editor.predicate_manual_hint")
-                : (KNOWN_PREDICATES.find((p) => p.key === predicateKey)?.description ?? "")}
+                : (PREDICATE_CATALOG.find((p) => p.key === predicateKey)?.description ?? "")}
             </p>
           </Field>
         </div>

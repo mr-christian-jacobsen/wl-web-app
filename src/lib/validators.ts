@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { isValidCountryLanguage } from "@/lib/locales";
-import { KNOWN_PREDICATE_KEYS } from "@/lib/predicates";
+import { KNOWN_PREDICATE_KEYS } from "@/lib/predicates.catalog";
 import { STEP_TYPE_KEYS, parseOptions, stepTypeRequiresOptions } from "@/lib/step-types";
 
 export const emailSchema = z.string().trim().toLowerCase().email("Invalid email address");
