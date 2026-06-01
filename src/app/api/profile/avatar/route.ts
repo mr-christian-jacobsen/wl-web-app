@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { reevaluatePendingInstancesForUser } from "@/lib/predicates";
 import { validateAvatar } from "@/lib/upload";
 
 function buildAvatarUrl(userId: string, version: number): string {
@@ -48,6 +49,11 @@ export async function POST(req: Request) {
     select: { id: true },
   });
 
+  // Fire-and-forget: any pending `avatar_present`-gated task instance
+  // for this user flips to completed silently. Safe to call regardless;
+  // the hook is internally swallow-and-log per the log.prune.ts contract.
+  void reevaluatePendingInstancesForUser(session.user.id);
+
   return NextResponse.json({ avatarUrl });
 }
 
@@ -60,6 +66,12 @@ export async function DELETE() {
     data: { avatar: null, avatarMime: null, avatarUrl: null },
     select: { id: true },
   });
+
+  // Predicate-driven auto-complete only ever transitions pending → completed,
+  // so clearing the avatar can never *complete* an `avatar_present` task —
+  // the hook is a documented no-op here. Called for symmetry + future-proofing
+  // (a new predicate could legitimately match on the clear path).
+  void reevaluatePendingInstancesForUser(session.user.id);
 
   return NextResponse.json({ avatarUrl: null });
 }

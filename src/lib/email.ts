@@ -39,7 +39,8 @@ export type EmailType =
   | "user_invitation"
   | "email_verification"
   | "password_reset"
-  | "email_change_confirmation";
+  | "email_change_confirmation"
+  | "task_created";
 
 type SendInput = {
   to: string;
@@ -349,5 +350,33 @@ export async function sendEmailChangeConfirmation(
       ttlMinutes: EMAIL_CHANGE_TTL_MINUTES,
     },
     { userId: opts.userId, languageId: opts.languageId },
+  );
+}
+
+/**
+ * Send the `task_created` email — fired by `dispatchTaskCreatedFor` in
+ * `src/lib/notifications.ts` when a task instance is created and stays
+ * pending after predicate evaluation AND the user has not opted out of
+ * task notification emails (User.taskEmailsOptOut). Variables match the
+ * `task_created` entry in `KNOWN_TEMPLATES`.
+ */
+export async function sendTaskCreatedEmail(
+  to: string,
+  vars: {
+    taskTitle: string;
+    taskDescription: string;
+    taskUrl: string;
+  },
+  ctx: { userId?: string | null; languageId?: string | null } = {},
+) {
+  await sendWithTemplateOrFallback(
+    "task_created",
+    to,
+    {
+      taskTitle: vars.taskTitle,
+      taskDescription: vars.taskDescription,
+      taskUrl: vars.taskUrl,
+    },
+    { userId: ctx.userId, languageId: ctx.languageId },
   );
 }

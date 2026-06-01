@@ -183,6 +183,7 @@ Excluded paths: `/api/auth/[...nextauth]` (NextAuth-internal) and `/api/openapi`
 - `pnpm promote-admin <email>` — set `isSuperAdmin = true` on a user.
 - `pnpm backfill-verified` — one-off after upgrading past the email-verification gate; sets `emailVerifiedAt = createdAt` for any user with `null` so pre-existing accounts can still log in.
 - `pnpm sync-translations` — reflect `KNOWN_TRANSLATIONS` (`src/lib/translations.ts`) into the DB without going through the Next.js `register()` hook. Belt-and-braces for cases where boot-time sync didn't fire (dev-mode hot-reload occasionally skips it, CI seeds, prod triage). The hook + admin "Sync from code" button are still the primary paths.
+- `pnpm db:seed-from-main` — copy the main repo's `prisma/dev.db` into the current git worktree and run `pnpm db:push` to reconcile the schema with the worktree's branch. Run from inside a worktree (refuses to run from the main repo). Backs up the worktree's existing `dev.db` to `prisma/dev.db.backup-<timestamp>` before overwriting. Stop the dev server first — SQLite on Windows can refuse the copy with a sharing violation when Next.js still has the file open. Useful because `prisma/` is per-worktree and each new worktree otherwise starts with an empty DB.
 
 ## Documented solutions
 

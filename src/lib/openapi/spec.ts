@@ -7,11 +7,14 @@ import { registerAdminLanguageRoutes } from "./routes/admin-languages";
 import { registerAdminSettingsRoutes } from "./routes/admin-settings";
 import { registerAdminSurveyRoutes } from "./routes/admin-surveys";
 import { registerAdminTagRoutes } from "./routes/admin-tags";
+import { registerAdminTaskRoutes } from "./routes/admin-tasks";
 import { registerAdminTemplateRoutes } from "./routes/admin-templates";
 import { registerAdminUserRoutes } from "./routes/admin-users";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerMiscPublicRoutes } from "./routes/misc-public";
+import { registerNotificationRoutes } from "./routes/notifications";
 import { registerProfileRoutes } from "./routes/profile";
+import { registerTaskRoutes } from "./routes/tasks";
 
 // Idempotent — `registerPath` does throw on duplicate path+method pairs, so
 // we guard against the second invocation. The dev server hot-reloads the
@@ -30,6 +33,9 @@ function registerAll() {
   registerAdminLanguageRoutes();
   registerAdminSettingsRoutes();
   registerAdminTagRoutes();
+  registerAdminTaskRoutes();
+  registerTaskRoutes();
+  registerNotificationRoutes();
   registered = true;
 }
 
@@ -61,6 +67,9 @@ export function generateOpenApiDocument() {
       { name: "Super admin · Error log", description: "Captured error/warning/info events." },
       { name: "Super admin · System settings", description: "SMTP, translate provider, retention." },
       { name: "Super admin · Tags", description: "Tag catalog (categories + tags) and survey-side attachment." },
+      { name: "Super admin · Tasks", description: "Task definitions and instance lifecycle." },
+      { name: "Tasks", description: "The signed-in user's task instances." },
+      { name: "Notifications", description: "In-app notifications surfaced by the header bell." },
     ],
   });
 }

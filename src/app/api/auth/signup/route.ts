@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { VERIFY_EMAIL_TTL_MS, sendEmailVerificationEmail } from "@/lib/email";
 import { logError } from "@/lib/log.server";
 import { hashPassword } from "@/lib/password";
+import { createInstancesForSignup } from "@/lib/tasks";
 import { generateToken } from "@/lib/tokens";
 import { signupSchema } from "@/lib/validators";
 
@@ -53,6 +54,12 @@ export async function POST(req: Request) {
       userId: user.id,
     });
   }
+
+  // Fan out signup-triggered task instances (R7 / U4). Fire-and-forget so
+  // signup latency does not depend on the catalog size or the predicate
+  // evaluation. `createInstancesForSignup` is internally swallow-and-log;
+  // a failure here cannot fail the signup.
+  void createInstancesForSignup(user.id);
 
   return NextResponse.json({ ok: true, requiresVerification: true }, { status: 201 });
 }

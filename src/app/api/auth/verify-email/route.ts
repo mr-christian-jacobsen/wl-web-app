@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { reevaluatePendingInstancesForUser } from "@/lib/predicates";
 import { hashToken } from "@/lib/tokens";
 import { verifyEmailSchema } from "@/lib/validators";
 
@@ -32,6 +33,9 @@ export async function POST(req: Request) {
         data: { usedAt: new Date() },
       }),
     ]);
+    // Fire-and-forget: any pending `email_verified`-gated task
+    // instance for this user flips to completed silently.
+    void reevaluatePendingInstancesForUser(record.userId);
     return NextResponse.json({ ok: true, purpose: "signup" });
   }
 
@@ -50,6 +54,11 @@ export async function POST(req: Request) {
           data: { usedAt: new Date() },
         }),
       ]);
+      // Fire-and-forget: re-evaluate after the email change commits.
+      // `email_verified` is already true from signup in the common case
+      // but the hook is safe + idempotent and covers any future
+      // email-touching predicate.
+      void reevaluatePendingInstancesForUser(record.userId);
       return NextResponse.json({ ok: true, purpose: "change" });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

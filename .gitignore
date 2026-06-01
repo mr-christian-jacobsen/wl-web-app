@@ -36,6 +36,7 @@ test-results
 # prisma
 prisma/dev.db
 prisma/dev.db-journal
+prisma/dev.db.backup-*
 
 # typescript build cache
 *.tsbuildinfo
