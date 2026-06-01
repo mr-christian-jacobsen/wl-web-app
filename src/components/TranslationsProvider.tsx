@@ -41,8 +41,18 @@ export function useTranslation(): {
   dict: TranslationDict;
 } {
   const dict = useContext(TranslationsContext) ?? {};
-  return {
-    dict,
-    t: (key: string, params?: TranslateParams) => translate(dict, key, params),
-  };
+  // Memoise the returned object so the `t` reference stays stable across
+  // re-renders when the dict hasn't changed. Without this, every render
+  // produced a fresh `{ dict, t }` literal — consumers that included `t`
+  // in a useEffect or useCallback dep array would re-run on every parent
+  // render, which manifested visibly as the NotificationBell dropdown
+  // flickering (its open-effect re-ran on every render, firing repeated
+  // fetch + mark-read cycles → state updates → more renders → loop).
+  return useMemo(
+    () => ({
+      dict,
+      t: (key: string, params?: TranslateParams) => translate(dict, key, params),
+    }),
+    [dict],
+  );
 }
