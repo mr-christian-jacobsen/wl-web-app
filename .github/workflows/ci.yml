@@ -12,9 +12,9 @@ jobs:
     env:
       DATABASE_URL: file:./prisma/ci.db
       AUTH_SECRET: ci-secret-not-used-anywhere-real-32-byte
-      AUTH_URL: http://localhost:3000
+      AUTH_URL: http://localhost:3010
       AUTH_TRUST_HOST: "true"
-      APP_URL: http://localhost:3000
+      APP_URL: http://localhost:3010
 
     steps:
       - uses: actions/checkout@v4

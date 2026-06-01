@@ -24,6 +24,7 @@ import { useState } from "react";
 import { Field, buttonClass, inputClass } from "@/components/AuthCard";
 import { StepTypeIcon } from "@/components/super-admin/StepTypeIcon";
 import { StepTypePicker } from "@/components/super-admin/StepTypePicker";
+import { SurveyTagPicker } from "@/components/super-admin/SurveyTagPicker";
 import { useTranslation } from "@/components/TranslationsProvider";
 import {
   DEFAULT_STEP_TYPE_KEY,
@@ -31,6 +32,7 @@ import {
   parseOptions,
   stepTypeRequiresOptions,
 } from "@/lib/step-types";
+import type { TagPickerGroup } from "@/lib/tag-picker";
 
 type Step = {
   id: string;
@@ -53,7 +55,15 @@ type Survey = {
 
 type Status = { kind: "idle" } | { kind: "ok"; msg: string } | { kind: "err"; msg: string };
 
-export function SurveyEditor({ survey }: { survey: Survey }) {
+export function SurveyEditor({
+  survey,
+  initialTagIds,
+  tagPickerGroups,
+}: {
+  survey: Survey;
+  initialTagIds: string[];
+  tagPickerGroups: TagPickerGroup[];
+}) {
   const { t } = useTranslation();
   const router = useRouter();
   const [name, setName] = useState(survey.name);
@@ -264,6 +274,12 @@ export function SurveyEditor({ survey }: { survey: Survey }) {
           )}
         </div>
       </form>
+
+      <SurveyTagPicker
+        initialTagIds={initialTagIds}
+        groups={tagPickerGroups}
+        surveyId={survey.id}
+      />
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h2 className="text-lg font-semibold">

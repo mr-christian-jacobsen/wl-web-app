@@ -106,6 +106,7 @@ export const TAGS = {
   AdminEmails: "Super admin · Email log",
   AdminErrors: "Super admin · Error log",
   AdminSettings: "Super admin · System settings",
+  AdminTags: "Super admin · Tags",
   AdminTasks: "Super admin · Tasks",
   Tasks: "Tasks",
   Notifications: "Notifications",

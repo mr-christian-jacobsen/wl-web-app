@@ -6,6 +6,7 @@ import "./schemas";
 import { registerAdminLanguageRoutes } from "./routes/admin-languages";
 import { registerAdminSettingsRoutes } from "./routes/admin-settings";
 import { registerAdminSurveyRoutes } from "./routes/admin-surveys";
+import { registerAdminTagRoutes } from "./routes/admin-tags";
 import { registerAdminTaskRoutes } from "./routes/admin-tasks";
 import { registerAdminTemplateRoutes } from "./routes/admin-templates";
 import { registerAdminUserRoutes } from "./routes/admin-users";
@@ -31,6 +32,7 @@ function registerAll() {
   registerAdminSurveyRoutes();
   registerAdminLanguageRoutes();
   registerAdminSettingsRoutes();
+  registerAdminTagRoutes();
   registerAdminTaskRoutes();
   registerTaskRoutes();
   registerNotificationRoutes();
@@ -64,6 +66,7 @@ export function generateOpenApiDocument() {
       { name: "Super admin · Email log", description: "Inspect / resend prior emails." },
       { name: "Super admin · Error log", description: "Captured error/warning/info events." },
       { name: "Super admin · System settings", description: "SMTP, translate provider, retention." },
+      { name: "Super admin · Tags", description: "Tag catalog (categories + tags) and survey-side attachment." },
       { name: "Super admin · Tasks", description: "Task definitions and instance lifecycle." },
       { name: "Tasks", description: "The signed-in user's task instances." },
       { name: "Notifications", description: "In-app notifications surfaced by the header bell." },

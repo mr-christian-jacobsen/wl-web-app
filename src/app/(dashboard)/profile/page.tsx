@@ -34,7 +34,17 @@ export default async function ProfilePage() {
       select: { id: true, countryCode: true, languageCode: true, isDefault: true },
     }),
   ]);
-  if (!user) redirect("/login");
+  if (!user) {
+    // Session token decoded but the user no longer exists in this DB
+    // (db wiped, user deleted, AUTH_URL/AUTH_SECRET rotated). Route
+    // through `/api/auth-cleanup` to clear the stale cookie before
+    // landing on /login — without that, the middleware would see the
+    // cryptographically-valid JWT, redirect /login → /profile, and
+    // we'd loop forever (ERR_TOO_MANY_REDIRECTS). The cleanup route
+    // is excluded from middleware so NextAuth's auth() wrapper does
+    // not refresh the cookie before we get to delete it.
+    redirect("/api/auth-cleanup?next=/login");
+  }
 
   const t = await getServerT();
 

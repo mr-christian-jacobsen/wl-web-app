@@ -29,7 +29,7 @@ pnpm db:push       # creates prisma/dev.db (SQLite)
 pnpm dev
 ```
 
-App runs on http://localhost:3000. No Docker, no Postgres, no SMTP required.
+App runs on http://localhost:3010. No Docker, no Postgres, no SMTP required.
 
 When you trigger "Forgot password," the reset link is printed to the dev-server console; copy it into your browser to complete the flow.
 

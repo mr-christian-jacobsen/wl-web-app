@@ -18,11 +18,14 @@ import {
   autoTranslateRequestSchema,
   changePasswordSchema,
   clientLogEntrySchema,
+  createCategorySchema,
   createEmailTemplateSchema,
   createLanguageSchema,
   createStepSchema,
   createSurveySchema,
+  createTagSchema,
   forgotPasswordSchema,
+  replaceSurveyTagsSchema,
   reorderStepsSchema,
   resendVerificationSchema,
   resetPasswordSchema,
@@ -31,12 +34,14 @@ import {
   submitResponseSchema,
   testEmailSchema,
   themePreferenceSchema,
+  updateCategorySchema,
   updateEmailTemplateSchema,
   updateLogRetentionSchema,
   updateProfileSchema,
   updateSmtpSettingsSchema,
   updateStepSchema,
   updateSurveySchema,
+  updateTagSchema,
   updateTranslateSettingsSchema,
   updateTranslationSchema,
   verifyEmailSchema,
@@ -74,6 +79,11 @@ registry.register("TestEmailInput", testEmailSchema);
 registry.register("UpdateTranslateSettingsInput", updateTranslateSettingsSchema);
 registry.register("UpdateLogRetentionInput", updateLogRetentionSchema);
 registry.register("ClientLogEntryInput", clientLogEntrySchema);
+registry.register("CreateCategoryInput", createCategorySchema);
+registry.register("UpdateCategoryInput", updateCategorySchema);
+registry.register("CreateTagInput", createTagSchema);
+registry.register("UpdateTagInput", updateTagSchema);
+registry.register("ReplaceSurveyTagsInput", replaceSurveyTagsSchema);
 registry.register("AssignTaskInstanceInput", assignTaskInstanceSchema);
 registry.register("EnableTaskInput", enableTaskSchema);
 registry.register("TickRequestInput", tickRequestSchema);

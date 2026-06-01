@@ -117,7 +117,7 @@ export async function PATCH(req: Request) {
       throw err;
     }
 
-    const base = process.env.APP_URL ?? "http://localhost:3000";
+    const base = process.env.APP_URL ?? "http://localhost:3010";
     const confirmUrl = `${base}/verify-email/${token}`;
     try {
       await sendEmailChangeConfirmation(newEmail, confirmUrl, {

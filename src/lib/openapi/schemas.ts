@@ -243,6 +243,62 @@ export const SyncTranslationsResultDTO = registry.register(
     .openapi("SyncTranslationsResult"),
 );
 
+export const TagCategoryDTO = registry.register(
+  "TagCategory",
+  z
+    .object({
+      id: z.string(),
+      name: z.string().openapi({ example: "Audience" }),
+      description: z.string().nullable(),
+      createdAt: z.string().datetime(),
+      tagCount: z.number().int().min(0),
+    })
+    .openapi("TagCategory"),
+);
+
+export const TagDTO = registry.register(
+  "Tag",
+  z
+    .object({
+      id: z.string(),
+      name: z.string().openapi({ example: "Compliance" }),
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+      categories: z.array(
+        z.object({ id: z.string(), name: z.string() }),
+      ),
+      usageCount: z
+        .number()
+        .int()
+        .min(0)
+        .openapi({
+          description: "Number of surveys this tag is currently attached to.",
+        }),
+    })
+    .openapi("Tag"),
+);
+
+export const TagListResponseDTO = registry.register(
+  "TagListResponse",
+  z
+    .object({
+      items: z.array(TagDTO),
+      total: z.number().int().min(0),
+      page: z.number().int().min(1),
+      pageSize: z.number().int().min(1),
+    })
+    .openapi("TagListResponse"),
+);
+
+export const SurveyTagsResponseDTO = registry.register(
+  "SurveyTagsResponse",
+  z
+    .object({
+      tagIds: z.array(z.string()),
+    })
+    .openapi("SurveyTagsResponse"),
+);
+
 /**
  * One trigger row attached to a Task definition (U7). The DB column
  * `dateList` is newline-joined `YYYY-MM-DD`; the editor and the

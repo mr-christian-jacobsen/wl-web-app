@@ -73,8 +73,8 @@ describe("renderFallback", () => {
       name: '<script>alert("x")</script>',
       email: "alex@example.com",
       password: "p",
-      appUrl: "http://localhost:3000",
-      loginUrl: "http://localhost:3000/login",
+      appUrl: "http://localhost:3010",
+      loginUrl: "http://localhost:3010/login",
     });
     expect(out!.html).toContain("&lt;script&gt;");
     expect(out!.html).not.toContain("<script>");

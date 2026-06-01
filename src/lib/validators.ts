@@ -650,3 +650,86 @@ export const clientLogEntrySchema = z.object({
   userAgent: z.string().max(1_024).nullable().optional(),
 });
 export type ClientLogEntryInput = z.infer<typeof clientLogEntrySchema>;
+
+// ---------------------------------------------------------------------------
+// Tag catalog (categories + tags), and the reusable pagination shape that
+// powers the paginated tag list. The pagination schema is exported separately
+// so future paginated admin lists can compose it instead of re-inventing the
+// shape (KTD: server-side pagination from day one).
+// ---------------------------------------------------------------------------
+
+/// Shared pagination query shape: `page` (1-indexed) + `pageSize` (1-100).
+/// Coerces from strings because URL params arrive as strings.
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+});
+export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
+
+const tagNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Name is required")
+  .max(50, "Name must be at most 50 characters");
+
+export const createCategorySchema = z.object({
+  name: tagNameSchema,
+  description: z.string().trim().max(280, "Description must be at most 280 characters").optional(),
+});
+export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
+
+export const updateCategorySchema = createCategorySchema.partial();
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
+
+export const createTagSchema = z.object({
+  name: tagNameSchema,
+  categoryIds: z
+    .array(z.string().cuid())
+    .default([])
+    .transform((arr) => Array.from(new Set(arr))),
+});
+export type CreateTagInput = z.infer<typeof createTagSchema>;
+
+export const updateTagSchema = z.object({
+  name: tagNameSchema.optional(),
+  /// When supplied, `categoryIds` REPLACES the current set — empty array
+  /// detaches all categories. Omitted means "do not touch memberships".
+  categoryIds: z
+    .array(z.string().cuid())
+    .optional()
+    .transform((arr) => (arr ? Array.from(new Set(arr)) : undefined)),
+});
+export type UpdateTagInput = z.infer<typeof updateTagSchema>;
+
+/// Tags-list query: pagination + search/sort/scope. `scope=uncategorized`
+/// and `categoryId` are mutually exclusive — they describe different
+/// slices of the catalog and combining them is ambiguous.
+export const listTagsQuerySchema = paginationQuerySchema
+  .extend({
+    q: z.string().trim().default(""),
+    sort: z.enum(["name", "usage"]).default("name"),
+    order: z.enum(["asc", "desc"]).default("asc"),
+    categoryId: z.string().cuid().optional(),
+    scope: z.enum(["all", "uncategorized"]).default("all"),
+  })
+  .superRefine((v, ctx) => {
+    if (v.scope === "uncategorized" && v.categoryId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "categoryId cannot be combined with scope=uncategorized",
+        path: ["categoryId"],
+      });
+    }
+  });
+export type ListTagsQuery = z.infer<typeof listTagsQuerySchema>;
+
+/// Bulk-replace endpoint for the survey-side tag picker. Accepts the full
+/// intended set of tag IDs; empty array detaches everything.
+export const replaceSurveyTagsSchema = z.object({
+  tagIds: z
+    .array(z.string().cuid())
+    .refine((arr) => new Set(arr).size === arr.length, {
+      message: "duplicate tag IDs",
+    }),
+});
+export type ReplaceSurveyTagsInput = z.infer<typeof replaceSurveyTagsSchema>;

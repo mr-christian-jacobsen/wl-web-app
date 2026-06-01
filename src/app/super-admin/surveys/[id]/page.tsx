@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { SurveyEditor } from "@/components/super-admin/SurveyEditor";
 import { prisma } from "@/lib/db";
+import { getSurveyTagIds, listTagsForPicker } from "@/lib/tags";
 
 export default async function SurveyEditorPage({
   params,
@@ -11,28 +12,32 @@ export default async function SurveyEditorPage({
 }) {
   const { id } = await params;
 
-  const survey = await prisma.survey.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      publicSlug: true,
-      name: true,
-      description: true,
-      published: true,
-      publishedAt: true,
-      steps: {
-        orderBy: { position: "asc" },
-        select: {
-          id: true,
-          position: true,
-          type: true,
-          title: true,
-          notes: true,
-          options: true,
+  const [survey, initialTagIds, tagPickerGroups] = await Promise.all([
+    prisma.survey.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        publicSlug: true,
+        name: true,
+        description: true,
+        published: true,
+        publishedAt: true,
+        steps: {
+          orderBy: { position: "asc" },
+          select: {
+            id: true,
+            position: true,
+            type: true,
+            title: true,
+            notes: true,
+            options: true,
+          },
         },
       },
-    },
-  });
+    }),
+    getSurveyTagIds(id),
+    listTagsForPicker(),
+  ]);
   if (!survey) notFound();
 
   return (
@@ -48,6 +53,8 @@ export default async function SurveyEditorPage({
           ...survey,
           publishedAt: survey.publishedAt?.toISOString() ?? null,
         }}
+        initialTagIds={initialTagIds}
+        tagPickerGroups={tagPickerGroups}
       />
     </section>
   );
