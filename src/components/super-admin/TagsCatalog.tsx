@@ -134,23 +134,26 @@ export function TagsCatalog({
   /// defaults).
   const onQueryChange = useCallback(
     (next: Partial<ListTagsQuery>) => {
-      setQuery((cur) => {
-        const merged: ListTagsQuery = { ...cur, ...next };
-        if (merged.scope === "uncategorized") {
-          merged.categoryId = undefined;
-        }
-        if (next.categoryId !== undefined && next.categoryId !== "") {
-          merged.scope = "all";
-        }
-        const href = buildTagsPageHref(merged);
-        startTransition(() => {
-          router.push(href, { scroll: false });
-          router.refresh();
-        });
-        return merged;
+      // Compute the merged query and href OUTSIDE of `setQuery` so the
+      // router push runs in an event-handler context, not React's
+      // render phase. Calling `startTransition` (or any state setter)
+      // from inside a `setQuery` updater warns: "Cannot call
+      // startTransition while rendering" in React 18+.
+      const merged: ListTagsQuery = { ...query, ...next };
+      if (merged.scope === "uncategorized") {
+        merged.categoryId = undefined;
+      }
+      if (next.categoryId !== undefined && next.categoryId !== "") {
+        merged.scope = "all";
+      }
+      const href = buildTagsPageHref(merged);
+      setQuery(merged);
+      startTransition(() => {
+        router.push(href, { scroll: false });
+        router.refresh();
       });
     },
-    [router],
+    [router, query],
   );
 
   function onSelectScope(scope: SidebarScope) {

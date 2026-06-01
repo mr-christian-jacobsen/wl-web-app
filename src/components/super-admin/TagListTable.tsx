@@ -219,7 +219,13 @@ export function TagListTable({
             {tags.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
-                  {t("super_admin.tags.empty")}
+                  {query.q.length > 0
+                    ? t("super_admin.tags.empty.search")
+                    : query.scope === "uncategorized"
+                      ? t("super_admin.tags.empty.uncategorized")
+                      : query.categoryId
+                        ? t("super_admin.tags.empty.category")
+                        : t("super_admin.tags.empty.catalog")}
                 </td>
               </tr>
             )}

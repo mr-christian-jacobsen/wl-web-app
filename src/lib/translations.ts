@@ -1187,7 +1187,11 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     name: "Tags — search input placeholder",
     defaultValue: "Search tags by name…",
   },
-  { key: "super_admin.tags.empty", name: "Tags — empty state (with search)", defaultValue: "No tags match your search." },
+  { key: "super_admin.tags.empty", name: "Tags — generic empty state (legacy)", defaultValue: "No tags to show." },
+  { key: "super_admin.tags.empty.search", name: "Tags — empty when a search query is active", defaultValue: "No tags match your search." },
+  { key: "super_admin.tags.empty.uncategorized", name: "Tags — empty under the Uncategorized scope", defaultValue: "No uncategorized tags. Every tag belongs to at least one category." },
+  { key: "super_admin.tags.empty.category", name: "Tags — empty under a specific category scope", defaultValue: "No tags in this category yet." },
+  { key: "super_admin.tags.empty.catalog", name: "Tags — empty under the All-tags scope (entire catalog is empty)", defaultValue: "No tags in the catalog yet — click \"New tag\" to add the first one." },
   {
     key: "super_admin.tags.no_categories",
     name: "Tags — empty state when no categories exist",
