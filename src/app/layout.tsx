@@ -1,16 +1,27 @@
 import type { Metadata, Viewport } from "next";
 
 import { AppSessionProvider } from "@/components/SessionProvider";
+import { DevBranchBadge } from "@/components/DevBranchBadge";
 import { ErrorReporter } from "@/components/ErrorReporter";
 import { ThemeWatcher } from "@/components/ThemeWatcher";
 import { TranslationsProvider } from "@/components/TranslationsProvider";
 import { auth } from "@/lib/auth";
+import { getShortBranch } from "@/lib/git-branch";
 import { getServerTranslations } from "@/lib/translations.server";
 
 import "./globals.css";
 
+// Prefix the browser-tab title with the branch name in dev so multiple
+// open worktrees stay distinguishable in the tab/window list. Returns
+// "wl-web-app" unchanged in production (where `getShortBranch()` is
+// gated to `null`).
+const branchTitlePrefix = (() => {
+  const short = getShortBranch();
+  return short ? `[${short}] ` : "";
+})();
+
 export const metadata: Metadata = {
-  title: "wl-web-app",
+  title: `${branchTitlePrefix}wl-web-app`,
   description: "Responsive web app with email/password authentication",
 };
 
@@ -75,6 +86,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <TranslationsProvider dict={translations}>
             <ThemeWatcher preference={preference} />
             <ErrorReporter />
+            <DevBranchBadge />
             <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-8 sm:px-6 lg:px-8">
               {children}
             </main>
