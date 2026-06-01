@@ -263,7 +263,7 @@ export async function sendUserInvitationEmail(
     languageId?: string | null;
   },
 ) {
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.APP_URL ?? "http://localhost:3010";
   const loginUrl = `${appUrl}/login`;
   await sendWithTemplateOrFallback(
     "user_invitation",
@@ -291,7 +291,7 @@ export async function sendEmailVerificationEmail(
   verifyUrl: string,
   opts: { name?: string; userId?: string | null; languageId?: string | null } = {},
 ) {
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.APP_URL ?? "http://localhost:3010";
   await sendWithTemplateOrFallback(
     "email_verification",
     to,
@@ -311,7 +311,7 @@ export async function sendPasswordResetEmail(
   resetUrl: string,
   opts: { name?: string; userId?: string | null; languageId?: string | null } = {},
 ) {
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.APP_URL ?? "http://localhost:3010";
   await sendWithTemplateOrFallback(
     "password_reset",
     to,
@@ -336,7 +336,7 @@ export async function sendEmailChangeConfirmation(
     languageId?: string | null;
   },
 ) {
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.APP_URL ?? "http://localhost:3010";
   await sendWithTemplateOrFallback(
     "email_change_confirmation",
     to,

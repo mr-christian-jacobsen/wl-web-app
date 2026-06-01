@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         expiresAt: new Date(Date.now() + VERIFY_EMAIL_TTL_MS),
       },
     });
-    const base = process.env.APP_URL ?? "http://localhost:3000";
+    const base = process.env.APP_URL ?? "http://localhost:3010";
     const verifyUrl = `${base}/verify-email/${token}`;
     try {
       await sendEmailVerificationEmail(user.email, verifyUrl, {

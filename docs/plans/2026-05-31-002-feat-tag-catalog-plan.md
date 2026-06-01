@@ -216,7 +216,7 @@ Carried from origin (`docs/brainstorms/2026-05-31-tag-catalog-requirements.md`).
   - `categoriesEqualByNameCi("Compliance", "compliance")` returns true; with surrounding whitespace returns true; with different names returns false.
   - `listCategoriesWithCount` (covered manually since it hits Prisma — no helper-level test).
 - **Verification:**
-  - With dev server running, `curl -b <admin-session-cookie> http://localhost:3000/api/super-admin/categories` returns a JSON array including any seeded category with its `tagCount`.
+  - With dev server running, `curl -b <admin-session-cookie> http://localhost:3010/api/super-admin/categories` returns a JSON array including any seeded category with its `tagCount`.
   - POST with `{ name: "Audience" }` creates; POST same name returns 409.
   - PATCH `[id]` with `{ description: "..." }` updates the description and returns the row.
   - DELETE `[id]` succeeds when the category has tags; subsequent GET on the catalog shows those tags under "Uncategorized" (verified via U6).
