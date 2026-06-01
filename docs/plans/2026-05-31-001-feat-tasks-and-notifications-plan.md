@@ -1,8 +1,10 @@
 ---
 title: "feat: Add tasks and in-app notifications system"
-status: active
+status: completed
 type: feat
 date: 2026-05-31
+completed: 2026-06-01
+shipped_in: "PR #24 (squash-merged as 63336b7)"
 origin: docs/brainstorms/2026-05-31-tasks-and-notifications-requirements.md
 ---
 
