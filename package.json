@@ -18,6 +18,7 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
+    "db:seed-from-main": "node scripts/seed-worktree-db.mjs",
     "promote-admin": "node scripts/promote-super-admin.mjs",
     "backfill-verified": "node scripts/backfill-email-verified.mjs",
     "sync-translations": "node scripts/sync-translations.mjs",
