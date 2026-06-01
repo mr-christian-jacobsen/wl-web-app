@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createTaskSchema,
+  instanceListQuerySchema,
   taskTriggerSchema,
   updateTaskSchema,
 } from "@/lib/validators";
@@ -276,5 +277,72 @@ describe("updateTaskSchema", () => {
     expect(
       updateTaskSchema.safeParse({ title: "X", force: true }).success,
     ).toBe(false);
+  });
+});
+
+describe("instanceListQuerySchema", () => {
+  it("accepts an empty object and defaults limit to 50", () => {
+    const r = instanceListQuerySchema.safeParse({});
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.limit).toBe(50);
+    }
+  });
+
+  it("accepts all filters set", () => {
+    const r = instanceListQuerySchema.safeParse({
+      userId: "u1",
+      taskId: "t1",
+      status: "pending",
+      cursor: "2026-05-31T10:00:00.000Z_i1",
+      limit: 25,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("coerces a numeric string limit into a number", () => {
+    // The URL `?limit=20` arrives as a string; z.coerce makes the
+    // schema robust at the boundary.
+    const r = instanceListQuerySchema.safeParse({ limit: "20" });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.limit).toBe(20);
+    }
+  });
+
+  it("rejects an unknown status value", () => {
+    expect(
+      instanceListQuerySchema.safeParse({ status: "archived" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a limit below 1", () => {
+    expect(instanceListQuerySchema.safeParse({ limit: 0 }).success).toBe(false);
+    expect(instanceListQuerySchema.safeParse({ limit: -5 }).success).toBe(false);
+  });
+
+  it("rejects a limit above 100", () => {
+    expect(instanceListQuerySchema.safeParse({ limit: 101 }).success).toBe(false);
+    expect(instanceListQuerySchema.safeParse({ limit: 9999 }).success).toBe(false);
+  });
+
+  it("accepts the boundary values 1 and 100", () => {
+    expect(instanceListQuerySchema.safeParse({ limit: 1 }).success).toBe(true);
+    expect(instanceListQuerySchema.safeParse({ limit: 100 }).success).toBe(true);
+  });
+
+  it("rejects a non-integer limit", () => {
+    expect(instanceListQuerySchema.safeParse({ limit: 5.5 }).success).toBe(false);
+  });
+
+  it("rejects unknown extra fields (.strict())", () => {
+    expect(
+      instanceListQuerySchema.safeParse({ status: "pending", foo: "bar" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects an empty-string userId (validator trims to empty → min(1))", () => {
+    expect(instanceListQuerySchema.safeParse({ userId: "   " }).success).toBe(false);
   });
 });

@@ -1273,6 +1273,192 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     description: "{date} is the offending date string.",
     defaultValue: "Dates must be in YYYY-MM-DD format; got \"{date}\".",
   },
+
+  // ─── Admin task instance overview (U8) ───────────────────────────────────
+  {
+    key: "super_admin.nav.task_instances",
+    name: "Super admin nav — Task instances",
+    defaultValue: "Task instances",
+  },
+  {
+    key: "super_admin.task_instances.title",
+    name: "Task instances — page title",
+    defaultValue: "Task instances",
+  },
+  {
+    key: "super_admin.task_instances.description",
+    name: "Task instances — subtitle",
+    defaultValue:
+      "Every TaskInstance across users. Filter by user, task definition, or status; mark a pending instance complete on behalf of its user; manually assign a definition to any user.",
+  },
+  {
+    key: "super_admin.task_instances.empty",
+    name: "Task instances — empty state",
+    defaultValue: "No task instances match these filters.",
+  },
+  {
+    key: "super_admin.task_instances.col.user",
+    name: "Task instances column — User",
+    defaultValue: "User",
+  },
+  {
+    key: "super_admin.task_instances.col.task",
+    name: "Task instances column — Task",
+    defaultValue: "Task",
+  },
+  {
+    key: "super_admin.task_instances.col.status",
+    name: "Task instances column — Status",
+    defaultValue: "Status",
+  },
+  {
+    key: "super_admin.task_instances.col.source",
+    name: "Task instances column — Source",
+    defaultValue: "Source",
+  },
+  {
+    key: "super_admin.task_instances.col.created",
+    name: "Task instances column — Created at",
+    defaultValue: "Created",
+  },
+  {
+    key: "super_admin.task_instances.col.completed",
+    name: "Task instances column — Completed at",
+    defaultValue: "Completed",
+  },
+  {
+    key: "super_admin.task_instances.col.actions",
+    name: "Task instances column — Actions",
+    defaultValue: "Actions",
+  },
+  {
+    key: "super_admin.task_instances.status.pending",
+    name: "Task instances — Pending status badge",
+    defaultValue: "Pending",
+  },
+  {
+    key: "super_admin.task_instances.status.completed",
+    name: "Task instances — Completed status badge",
+    defaultValue: "Completed",
+  },
+  {
+    key: "super_admin.task_instances.filter.user_label",
+    name: "Task instances filter — User ID label",
+    defaultValue: "User ID",
+  },
+  {
+    key: "super_admin.task_instances.filter.user_placeholder",
+    name: "Task instances filter — User ID placeholder",
+    defaultValue: "Paste a user ID",
+  },
+  {
+    key: "super_admin.task_instances.filter.task_label",
+    name: "Task instances filter — Task label",
+    defaultValue: "Task",
+  },
+  {
+    key: "super_admin.task_instances.filter.task_all",
+    name: "Task instances filter — 'All tasks' option",
+    defaultValue: "All tasks",
+  },
+  {
+    key: "super_admin.task_instances.filter.status_label",
+    name: "Task instances filter — Status label",
+    defaultValue: "Status",
+  },
+  {
+    key: "super_admin.task_instances.filter.status_all",
+    name: "Task instances filter — 'All statuses' option",
+    defaultValue: "All statuses",
+  },
+  {
+    key: "super_admin.task_instances.mark_complete",
+    name: "Task instances — Mark complete button",
+    defaultValue: "Mark complete",
+  },
+  {
+    key: "super_admin.task_instances.completing",
+    name: "Task instances — Mark complete pending state",
+    defaultValue: "Completing…",
+  },
+  {
+    key: "super_admin.task_instances.confirm_complete",
+    name: "Task instances — confirm-complete dialog body",
+    description:
+      "{title} is the task title; {email} is the affected user's email.",
+    defaultValue: "Mark \"{title}\" complete for {email}?",
+  },
+  {
+    key: "super_admin.task_instances.error.complete_failed",
+    name: "Task instances — mark-complete failure fallback",
+    defaultValue: "Could not mark this instance complete.",
+  },
+  {
+    key: "super_admin.task_instances.error.load_failed",
+    name: "Task instances — list-fetch failure fallback",
+    defaultValue: "Could not load instances.",
+  },
+  {
+    key: "super_admin.task_instances.load_more",
+    name: "Task instances — Load more button",
+    defaultValue: "Load more",
+  },
+  {
+    key: "super_admin.task_instances.loading_more",
+    name: "Task instances — Load more pending state",
+    defaultValue: "Loading…",
+  },
+  {
+    key: "super_admin.task_instances.assign_button",
+    name: "Task instances — Assign button (header)",
+    defaultValue: "Assign task",
+  },
+  {
+    key: "super_admin.task_instances.assign.title",
+    name: "Task instances assign dialog — title",
+    defaultValue: "Assign a task",
+  },
+  {
+    key: "super_admin.task_instances.assign.subtitle",
+    name: "Task instances assign dialog — subtitle",
+    defaultValue:
+      "Pick a task definition and a target user. The user gets a pending instance and a notification unless the task's predicate already matches their state.",
+  },
+  {
+    key: "super_admin.task_instances.assign.task_label",
+    name: "Task instances assign dialog — Task field",
+    defaultValue: "Task definition",
+  },
+  {
+    key: "super_admin.task_instances.assign.task_empty",
+    name: "Task instances assign dialog — empty task list",
+    defaultValue: "No task definitions exist yet.",
+  },
+  {
+    key: "super_admin.task_instances.assign.user_label",
+    name: "Task instances assign dialog — User ID field",
+    defaultValue: "User ID",
+  },
+  {
+    key: "super_admin.task_instances.assign.user_placeholder",
+    name: "Task instances assign dialog — User ID placeholder",
+    defaultValue: "Paste a user ID",
+  },
+  {
+    key: "super_admin.task_instances.assign.submit",
+    name: "Task instances assign dialog — submit button",
+    defaultValue: "Assign",
+  },
+  {
+    key: "super_admin.task_instances.assign.error.missing_fields",
+    name: "Task instances assign dialog — missing fields error",
+    defaultValue: "Pick a task and provide a user ID.",
+  },
+  {
+    key: "super_admin.task_instances.assign.error.failed",
+    name: "Task instances assign dialog — submission failure fallback",
+    defaultValue: "Could not assign this task.",
+  },
 ];
 
 const TRANSLATIONS_BY_KEY = new Map(KNOWN_TRANSLATIONS.map((t) => [t.key, t]));

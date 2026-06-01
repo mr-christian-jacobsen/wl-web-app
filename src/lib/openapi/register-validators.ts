@@ -10,6 +10,7 @@ import {
   assignTaskInstanceSchema,
   createTaskSchema,
   enableTaskSchema,
+  instanceListQuerySchema,
   markNotificationsReadSchema,
   taskTriggerSchema,
   tickRequestSchema,
@@ -80,3 +81,4 @@ registry.register("MarkNotificationsReadInput", markNotificationsReadSchema);
 registry.register("TaskTriggerInput", taskTriggerSchema);
 registry.register("CreateTaskInput", createTaskSchema);
 registry.register("UpdateTaskInput", updateTaskSchema);
+registry.register("InstanceListQueryInput", instanceListQuerySchema);

@@ -342,6 +342,44 @@ export const TaskInstanceDTO = registry.register(
 );
 
 /**
+ * Per-user task instance with the joined User + Task fields the admin
+ * global instance overview table needs to render (U8 — R23, R24).
+ * Mirrors the `select` shape in `GET /api/super-admin/tasks/instances`
+ * exactly so the wire format and the DTO stay in lockstep.
+ *
+ * Returned shape uses ISO strings for the date fields (the handler
+ * `.toISOString()`s them on the way out) so downstream consumers
+ * (Swagger UI, generated clients) get a predictable string type.
+ */
+export const TaskInstanceWithUserAndTaskDTO = registry.register(
+  "TaskInstanceWithUserAndTask",
+  z
+    .object({
+      id: z.string(),
+      taskId: z.string(),
+      userId: z.string(),
+      status: z.enum(["pending", "completed"]),
+      source: z.enum(["predicate", "user", "admin"]).nullable(),
+      signature: z.string(),
+      completedAt: z.string().datetime().nullable(),
+      assignedByAdminId: z.string().nullable(),
+      completedByAdminId: z.string().nullable(),
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+      user: z.object({
+        id: z.string(),
+        email: z.string().email(),
+        name: z.string(),
+      }),
+      task: z.object({
+        id: z.string(),
+        title: z.string(),
+      }),
+    })
+    .openapi("TaskInstanceWithUserAndTask"),
+);
+
+/**
  * In-app notification (R13) returned by `GET /api/notifications`. The
  * dropdown surface needs the linked `TaskInstance` + its parent `Task`
  * title so the row can render a label and an "open task" link without

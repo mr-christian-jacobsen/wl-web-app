@@ -594,6 +594,38 @@ export const tickRequestSchema = z.object({}).strict();
 export type TickRequestInput = z.infer<typeof tickRequestSchema>;
 
 /**
+ * Query parameters for `GET /api/super-admin/tasks/instances` — the U8
+ * admin global instance overview list endpoint. Filters compose with
+ * AND semantics; all are optional so the bare endpoint returns the
+ * most recent page of every instance ordered by `(createdAt DESC, id
+ * DESC)`.
+ *
+ * Cursor pagination uses a `<createdAtIso>_<id>` opaque string so the
+ * server can decode it into the `(createdAt, id)` tuple comparison
+ * `WHERE (createdAt, id) < (cursorCreatedAt, cursorId)`. We avoid
+ * base64 because the value never leaves the admin surface — the
+ * underscore-joined form is easier to debug in the URL bar and on
+ * logs without changing semantics.
+ *
+ * `limit` is coerced from the URL string and clamped to [1, 100] so a
+ * stray `?limit=0` or `?limit=99999` can't break the table render or
+ * exhaust memory.
+ *
+ * `.strict()` keeps the contract narrow — a typo like `?staus=pending`
+ * fails at the validator instead of silently being ignored.
+ */
+export const instanceListQuerySchema = z
+  .object({
+    userId: z.string().trim().min(1).optional(),
+    taskId: z.string().trim().min(1).optional(),
+    status: z.enum(["pending", "completed"]).optional(),
+    cursor: z.string().trim().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .strict();
+export type InstanceListQueryInput = z.infer<typeof instanceListQuerySchema>;
+
+/**
  * Body for POST /api/notifications/mark-read — the bell-dropdown-open
  * + `/tasks`-visit bulk mark-read endpoint. No body fields: scope is
  * always `session.user.id`, never accepted as a parameter. The schema

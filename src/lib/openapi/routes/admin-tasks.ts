@@ -16,7 +16,12 @@ import {
   validationErrorResponse,
   z,
 } from "../registry";
-import { IdParam, TaskDTO, TaskInstanceDTO } from "../schemas";
+import {
+  IdParam,
+  TaskDTO,
+  TaskInstanceDTO,
+  TaskInstanceWithUserAndTaskDTO,
+} from "../schemas";
 
 /**
  * Admin tasks routes — registers the manual-assign endpoint (U4),
@@ -337,6 +342,90 @@ export function registerAdminTaskRoutes() {
       ...unauthorizedResponses(),
       404: {
         description: "Task definition not found.",
+        content: { "application/json": { schema: ErrorResponse } },
+      },
+    },
+  });
+
+  // ───── U8 admin global instance overview ─────────────────────────────
+  registry.registerPath({
+    method: "get",
+    path: "/api/super-admin/tasks/instances",
+    tags: [TAGS.AdminTasks],
+    summary: "List TaskInstance rows across users (admin overview)",
+    description:
+      "Cross-user TaskInstance list with optional filters and cursor pagination. Filters compose with AND semantics: `userId` (exact match), `taskId` (exact match), `status` (`pending`|`completed`). `cursor` is an opaque `<createdAtIso>_<id>` string returned by a previous response. `limit` is clamped to [1, 100], default 50. Ordering: `createdAt DESC, id DESC`. Each row includes the joined `user` (id/email/name) and `task` (id/title) so the admin table can render without a second round-trip.",
+    security: [{ sessionCookie: [] }],
+    request: {
+      query: z.object({
+        userId: z.string().optional().openapi({
+          param: { name: "userId", in: "query" },
+          description: "Scope to a single user (exact ID match).",
+        }),
+        taskId: z.string().optional().openapi({
+          param: { name: "taskId", in: "query" },
+          description: "Scope to a single task definition (exact ID match).",
+        }),
+        status: z.enum(["pending", "completed"]).optional().openapi({
+          param: { name: "status", in: "query" },
+        }),
+        cursor: z.string().optional().openapi({
+          param: { name: "cursor", in: "query" },
+          description:
+            "Opaque pagination cursor (`<createdAtIso>_<id>`) from a previous response.",
+        }),
+        limit: z.coerce
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .optional()
+          .openapi({ param: { name: "limit", in: "query" } }),
+      }),
+    },
+    responses: {
+      200: {
+        description:
+          "A page of TaskInstance rows with joined `user` + `task`, plus `nextCursor` (null when no more pages).",
+        content: {
+          "application/json": {
+            schema: z.object({
+              instances: z.array(TaskInstanceWithUserAndTaskDTO),
+              nextCursor: z.string().nullable(),
+            }),
+          },
+        },
+      },
+      ...validationErrorResponse(),
+      ...unauthorizedResponses(),
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/api/super-admin/tasks/instances/{id}/complete",
+    tags: [TAGS.AdminTasks],
+    summary: "Mark a TaskInstance complete on behalf of its user",
+    description:
+      "Admin 'mark complete' (R12, R24). Flips the instance to `completed` with `source: 'admin'`, stamps `completedAt`, and records the acting admin in `completedByAdminId` (audit attribution per the U1 schema). No request body — the admin's identity comes from the session cookie.",
+    security: [{ sessionCookie: [] }],
+    request: { params: IdParam },
+    responses: {
+      200: {
+        description: "Instance marked complete with admin attribution.",
+        content: {
+          "application/json": {
+            schema: z.object({ instance: TaskInstanceDTO }),
+          },
+        },
+      },
+      ...unauthorizedResponses(),
+      404: {
+        description: "Instance not found.",
+        content: { "application/json": { schema: ErrorResponse } },
+      },
+      409: {
+        description: "Instance is already completed.",
         content: { "application/json": { schema: ErrorResponse } },
       },
     },
