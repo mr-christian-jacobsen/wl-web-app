@@ -36,11 +36,17 @@ export function TranslationsProvider({
  * provides a translation, and calling with an unregistered key renders
  * the key itself — making typos loud in QA.
  */
+// Module-level singleton for the fallback dict, so the empty-context
+// branch reuses the same object reference across every call. Without
+// this, `useContext(...) ?? {}` would synthesise a fresh `{}` per render
+// when no provider is mounted, breaking the useMemo cache key below.
+const EMPTY_DICT: TranslationDict = {};
+
 export function useTranslation(): {
   t: (key: string, params?: TranslateParams) => string;
   dict: TranslationDict;
 } {
-  const dict = useContext(TranslationsContext) ?? {};
+  const dict = useContext(TranslationsContext) ?? EMPTY_DICT;
   // Memoise the returned object so the `t` reference stays stable across
   // re-renders when the dict hasn't changed. Without this, every render
   // produced a fresh `{ dict, t }` literal — consumers that included `t`
