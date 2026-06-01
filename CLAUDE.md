@@ -214,6 +214,42 @@ Excluded paths: `/api/auth/[...nextauth]` (NextAuth-internal) and `/api/openapi`
 
 "Try it out" works directly from the docs page because Swagger UI is configured with a `requestInterceptor` that forwards the session cookie — same-origin authenticated calls just succeed.
 
+## Testing
+
+Vitest, two environments side-by-side. The split is configured in `vitest.config.ts`:
+
+- **`.test.ts` files** run under the `node` environment — covers all pure-function modules (validators, OpenAPI registry, Prisma normaliser, predicate evaluator, etc.). This is where the bulk of the existing ~400 tests live.
+- **`.test.tsx` files** run under the `jsdom` environment, set up via `environmentMatchGlobs`, so we don't pay the jsdom startup cost across the whole suite. Use this extension for component + hook tests; React Testing Library (`@testing-library/react`) and jest-dom matchers (`@testing-library/jest-dom/vitest`) are wired up via `tests/unit/setup.ts`.
+
+**Convention for interactive UI:** any new component under `src/components/**` that uses `useEffect`, `useCallback`, or polling — or any new custom hook in `src/components/` / `src/lib/` that returns functions consumers may put in dep arrays — should ship with a corresponding `*.test.tsx`. The first canonical example is `tests/unit/use-translation.test.tsx`, which asserts the hook's `t` reference is stable across re-renders when `dict` is unchanged (caught the bug in `SOL-2026-014` that survived two rounds of doc review + ten implementation subagents + merge before a user noticed it visually).
+
+What a hook stability test typically looks like:
+
+```tsx
+const STABLE_DICT = { greeting: "Hello" };
+
+function Probe() {
+  const { t } = useTranslation();
+  observed.push(t);
+  return null;
+}
+
+const { rerender } = render(
+  <TranslationsProvider dict={STABLE_DICT}>
+    <Probe />
+  </TranslationsProvider>
+);
+rerender(
+  <TranslationsProvider dict={STABLE_DICT}>
+    <Probe />
+  </TranslationsProvider>
+);
+
+expect(observed[0]).toBe(observed[1]); // ref preserved
+```
+
+Mocks for Prisma / external IO use `vi.mock` at the top of the test file; see `tests/unit/notifications.test.ts` for an existing pattern.
+
 ## Scripts
 
 - `pnpm promote-admin <email>` — set `isSuperAdmin = true` on a user.
