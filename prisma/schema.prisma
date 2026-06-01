@@ -35,6 +35,12 @@ model User {
   /// Resolved server-side at request time; the inline script in the root
   /// layout applies the OS preference for "system" before first paint.
   themePreference String?
+  /// When true, the user has opted out of `task_created` notification emails.
+  /// In-app notifications cannot be disabled. Surfaced as a toggle on
+  /// /profile and threaded through the JWT session callback so the
+  /// notification dispatcher can short-circuit email sends without an
+  /// extra DB query. Default false (emails enabled) per KTD5.
+  taskEmailsOptOut Boolean @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -43,6 +49,21 @@ model User {
   usageSessions      UsageSession[]
   emails             Email[]
   logEntries         LogEntry[]
+  /// Per-user task instances created by the tasks subsystem (signup
+  /// trigger, manual admin assign, backfill on enable, recurring,
+  /// specific date). See `Task` and `TaskInstance`.
+  taskInstances      TaskInstance[]
+  /// Per-user in-app notifications. v1 only carries `task_created`
+  /// notifications; the entity is general so non-task notification
+  /// types can join without schema churn.
+  notifications      Notification[]
+  /// Reverse relation for `TaskInstance.assignedByAdmin` — task
+  /// instances this user (as super admin) manually assigned to others.
+  assignedTaskInstances  TaskInstance[] @relation("TaskInstanceAssignedByAdmin")
+  /// Reverse relation for `TaskInstance.completedByAdmin` — task
+  /// instances this user (as super admin) marked complete on behalf
+  /// of another user.
+  completedTaskInstances TaskInstance[] @relation("TaskInstanceCompletedByAdmin")
 
   @@index([languageId])
 }
@@ -233,7 +254,7 @@ model EmailVerificationToken {
 model Email {
   id          String   @id @default(cuid())
   to          String
-  type        String // "user_invitation" | "email_verification" | "password_reset" | "email_change_confirmation"
+  type        String // "user_invitation" | "email_verification" | "password_reset" | "email_change_confirmation" | "task_created"
   templateKey String? // null when the hardcoded fallback was rendered
   subject     String
   bodyText    String
@@ -387,4 +408,117 @@ model LogEntry {
   @@index([userId])
   @@index([source])
   @@index([sessionId])
+}
+
+/// Admin-defined task template. Like `Survey` and `EmailTemplate`,
+/// `Task` is a global resource (no `userId`) — any super admin can
+/// create / edit / enable / disable / delete any task. Per-user
+/// state lives in `TaskInstance`. Triggers live in the `TaskTrigger`
+/// child table so the four trigger shapes (signup, manual_assign,
+/// recurring, specific_date) can carry kind-specific config (interval
+/// days, date list) without forcing booleans + JSON onto this row.
+model Task {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  /// Optional auto-complete predicate key from `KNOWN_PREDICATES`
+  /// in `src/lib/predicates.ts`. Null means "manual / trust user" —
+  /// only user clicks or admin overrides complete the task.
+  predicateKey  String?
+  /// Admin-toggled. Disabled tasks do not produce new instances via
+  /// signup / scheduler / backfill (existing instances stay visible
+  /// per the resolved-2026-05-31 decision in the plan).
+  enabled       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  triggers  TaskTrigger[]
+  instances TaskInstance[]
+
+  @@index([enabled])
+  @@index([updatedAt])
+}
+
+/// One trigger row per discrete trigger configuration. `kind` is a
+/// string discriminator matching one of: `signup`, `manual_assign`,
+/// `recurring`, `specific_date`. `intervalDays` carries the recurring
+/// interval; `dateList` carries newline-joined `YYYY-MM-DD` strings
+/// for specific-date triggers; both are null for `signup` and
+/// `manual_assign`. Cascade-deleted with `Task`.
+model TaskTrigger {
+  id           String   @id @default(cuid())
+  taskId       String
+  kind         String
+  intervalDays Int?
+  /// Newline-joined `YYYY-MM-DD` strings. Stored as a single column
+  /// instead of a child table because the scheduler's per-tick scan
+  /// reads all rows together; KTD3 in the plan documents the
+  /// indexability trade-off.
+  dateList     String?
+  createdAt    DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([kind])
+}
+
+/// Per-user task instance. Status is `pending` or `completed`.
+/// `source` records how the instance reached `completed`:
+///   "predicate" — auto-complete predicate matched
+///   "user"      — user clicked Mark complete on /tasks
+///   "admin"     — admin marked complete on behalf via instance overview
+/// `signature` is the uniqueness scheme per KTD10 in the plan:
+///   "signup"                       (signup trigger)
+///   "manual:<assignedAtIso>"       (manual admin assignment)
+///   "backfill:<enabledAtIso>"      (backfill on enable)
+///   "recurring:<cycleStartIso>"    (recurring trigger)
+///   "specific-date:<YYYY-MM-DD>"   (specific-date trigger)
+/// `assignedByAdminId` and `completedByAdminId` are nullable audit
+/// FKs to `User` set when an admin manually assigned the instance
+/// (U4) or marked it complete on behalf (U8). Both null for
+/// self-completions and predicate-driven completions.
+model TaskInstance {
+  id                   String    @id @default(cuid())
+  taskId               String
+  userId               String
+  status               String    @default("pending")
+  source               String?
+  signature            String
+  completedAt          DateTime?
+  assignedByAdminId    String?
+  completedByAdminId   String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  task              Task           @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedByAdmin   User?          @relation("TaskInstanceAssignedByAdmin", fields: [assignedByAdminId], references: [id], onDelete: SetNull)
+  completedByAdmin  User?          @relation("TaskInstanceCompletedByAdmin", fields: [completedByAdminId], references: [id], onDelete: SetNull)
+  notifications     Notification[]
+
+  @@unique([taskId, userId, signature])
+  @@index([userId, status])
+  @@index([taskId])
+}
+
+/// In-app notification. v1 only carries `task_created` notifications
+/// fired when a task instance is created and stays pending after
+/// predicate evaluation. Read/unread is independent of the linked
+/// `TaskInstance.status` (R13). Bell badge counts where
+/// `unread = true`. The entity is general so future notification
+/// types can join without schema churn.
+model Notification {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String
+  taskInstanceId  String?
+  unread          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskInstance TaskInstance? @relation(fields: [taskInstanceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, unread])
+  @@index([taskInstanceId])
 }

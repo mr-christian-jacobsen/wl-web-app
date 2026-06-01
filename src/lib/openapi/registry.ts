@@ -23,6 +23,20 @@ registry.registerComponent("securitySchemes", "sessionCookie", {
     "Auth.js session cookie set by /api/auth/callback/credentials after login. Swagger UI's Try-it-out reuses the browser cookie automatically when /super-admin/api-docs is open in the same origin.",
 });
 
+// Shared-secret header authenticating the scheduler tick endpoint
+// (`POST /api/super-admin/tasks/tick`). External cron services can't
+// carry an Auth.js session cookie, so the endpoint reads
+// `X-Tick-Secret` and constant-time-compares against the
+// `tasks.tick.secret` SystemSetting. The secret is auto-generated on
+// first read and rotatable from /super-admin/system-settings.
+registry.registerComponent("securitySchemes", "tickSecret", {
+  type: "apiKey",
+  in: "header",
+  name: "X-Tick-Secret",
+  description:
+    "Shared secret matched against the `tasks.tick.secret` SystemSetting via constant-time compare. Only accepted on the scheduler tick endpoint; every other admin route uses `sessionCookie`.",
+});
+
 export const ErrorResponse = registry.register(
   "ErrorResponse",
   z
@@ -92,4 +106,7 @@ export const TAGS = {
   AdminEmails: "Super admin · Email log",
   AdminErrors: "Super admin · Error log",
   AdminSettings: "Super admin · System settings",
+  AdminTasks: "Super admin · Tasks",
+  Tasks: "Tasks",
+  Notifications: "Notifications",
 } as const;

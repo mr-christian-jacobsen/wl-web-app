@@ -422,6 +422,128 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     name: "Profile — Sign-out button",
     defaultValue: "Sign out",
   },
+  {
+    key: "profile.task_emails_optout.label",
+    name: "Profile — Task-email opt-out toggle label",
+    description:
+      "Label next to the checkbox on /profile that disables task notification emails.",
+    defaultValue: "Don't email me about new tasks",
+  },
+  {
+    key: "profile.task_emails_optout.description",
+    name: "Profile — Task-email opt-out section description",
+    description: "Helper text under the toggle explaining the in-app notification floor.",
+    defaultValue:
+      "Turn this on to stop receiving emails when a new task is created for you. You'll still see in-app notifications — those can't be disabled.",
+  },
+
+  // ─── Dashboard shared nav (`src/app/(dashboard)/layout.tsx`) ─────────────
+  {
+    key: "dashboard.nav.app_name",
+    name: "Dashboard header — app-name link (top-left)",
+    description: "Renders the product name as a link back to the public landing page.",
+    defaultValue: "wl-web-app",
+  },
+  {
+    key: "dashboard.nav.profile",
+    name: "Dashboard header — 'Profile' nav link",
+    defaultValue: "Profile",
+  },
+  {
+    key: "dashboard.nav.tasks",
+    name: "Dashboard header — 'Tasks' nav link",
+    defaultValue: "Tasks",
+  },
+
+  // ─── Tasks (user /tasks page + notification bell) ────────────────────────
+  {
+    key: "tasks.empty.title",
+    name: "Tasks — empty-state heading on /tasks when no pending instances",
+    defaultValue: "You're all caught up",
+  },
+  {
+    key: "tasks.empty.body",
+    name: "Tasks — empty-state body under the heading",
+    defaultValue: "Nothing to do right now. We'll let you know when something comes up.",
+  },
+  {
+    key: "tasks.mark_complete",
+    name: "Tasks — per-row 'Mark complete' button",
+    defaultValue: "Mark complete",
+  },
+  {
+    key: "tasks.section.pending",
+    name: "Tasks — pending section heading",
+    defaultValue: "To do",
+  },
+  {
+    key: "tasks.section.completed",
+    name: "Tasks — completed section heading (collapsed by default)",
+    defaultValue: "Completed",
+  },
+  {
+    key: "tasks.page.title",
+    name: "Tasks — page heading",
+    defaultValue: "Your tasks",
+  },
+  {
+    key: "tasks.page.subtitle",
+    name: "Tasks — subtitle under the heading",
+    defaultValue: "Track what's outstanding and what you've finished.",
+  },
+  {
+    key: "tasks.deep_link",
+    name: "Tasks — 'Go to' deep-link label on rows with a predicate deepLinkPath",
+    defaultValue: "Go to",
+  },
+  {
+    key: "tasks.mark_complete_failed",
+    name: "Tasks — inline error shown when POST /api/tasks/{id}/complete fails",
+    defaultValue: "Could not mark complete — please try again.",
+  },
+  {
+    key: "tasks.completed.count",
+    name: "Tasks — '{n} completed' summary label on the collapsed section",
+    description: "Uses `{n}` as the count placeholder.",
+    defaultValue: "{n} completed",
+  },
+  {
+    key: "notifications.bell.aria_label",
+    name: "Notifications — bell-button aria-label",
+    defaultValue: "Notifications",
+  },
+  {
+    key: "notifications.empty",
+    name: "Notifications — empty-state message inside the bell dropdown",
+    defaultValue: "No notifications yet.",
+  },
+  {
+    key: "notifications.mark_all_read",
+    name: "Notifications — 'Mark all as read' button inside the dropdown",
+    defaultValue: "Mark all as read",
+  },
+  {
+    key: "notifications.bell.unread_count",
+    name: "Notifications — bell-button aria-label with unread count",
+    description:
+      "Uses `{n}` as the unread-count placeholder; used as the bell's aria-label when at least one notification is unread.",
+    defaultValue: "{n} unread notifications",
+  },
+  {
+    key: "notifications.see_all",
+    name: "Notifications — header link to the full task list",
+    defaultValue: "See all",
+  },
+  {
+    key: "notifications.loading",
+    name: "Notifications — loading state inside the bell dropdown",
+    defaultValue: "Loading…",
+  },
+  {
+    key: "notifications.fetch_failed",
+    name: "Notifications — error message when the dropdown fails to load",
+    defaultValue: "Couldn't load notifications.",
+  },
 
   // ─── Super admin shared nav ──────────────────────────────────────────────
   {
@@ -448,6 +570,11 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
     key: "super_admin.nav.surveys",
     name: "Super admin nav — Surveys",
     defaultValue: "Surveys",
+  },
+  {
+    key: "super_admin.nav.tasks",
+    name: "Super admin nav — Tasks",
+    defaultValue: "Tasks",
   },
   {
     key: "super_admin.nav.languages",
@@ -963,6 +1090,7 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   { key: "super_admin.emails.type.email_verification", name: "Email type — email verification", defaultValue: "Email verification" },
   { key: "super_admin.emails.type.password_reset", name: "Email type — password reset", defaultValue: "Password reset" },
   { key: "super_admin.emails.type.email_change_confirmation", name: "Email type — email change confirmation", defaultValue: "Email change" },
+  { key: "super_admin.emails.type.task_created", name: "Email type — task created", defaultValue: "Task created" },
   // Email status labels (rendered from the `status` enum column)
   { key: "super_admin.emails.status.sent", name: "Email status — sent", defaultValue: "sent" },
   { key: "super_admin.emails.status.pending", name: "Email status — pending", defaultValue: "pending" },
@@ -1148,6 +1276,280 @@ export const KNOWN_TRANSLATIONS: ReadonlyArray<TranslationKeyDef> = [
   { key: "public_survey.field.long_text_placeholder", name: "Public survey — long_text placeholder", defaultValue: "Your answer" },
   { key: "public_survey.field.yes", name: "Public survey — Yes option", defaultValue: "Yes" },
   { key: "public_survey.field.no", name: "Public survey — No option", defaultValue: "No" },
+
+  // ─── Super admin / Tasks (U7 admin editor) ───────────────────────────────
+  { key: "super_admin.tasks.title", name: "Tasks — page title", defaultValue: "Tasks" },
+  {
+    key: "super_admin.tasks.description",
+    name: "Tasks — page description",
+    defaultValue:
+      "Configurable to-do items the system can assign to your users. Each definition has triggers (signup, manual assign, recurring, specific date) and an optional auto-complete predicate from the engineering catalog.",
+  },
+  { key: "super_admin.tasks.empty", name: "Tasks — empty state", defaultValue: "No tasks yet — click 'New task' to create one." },
+  { key: "super_admin.tasks.new", name: "Tasks — 'New task' button", defaultValue: "New task" },
+  { key: "super_admin.tasks.create_failed", name: "Tasks — create-failed fallback", defaultValue: "Could not create task" },
+  { key: "super_admin.tasks.delete_failed", name: "Tasks — delete-failed fallback", defaultValue: "Could not delete task" },
+  {
+    key: "super_admin.tasks.delete_confirm",
+    name: "Tasks — delete confirmation",
+    description: "{title} is replaced with the task title.",
+    defaultValue: "Delete task \"{title}\"?",
+  },
+  {
+    key: "super_admin.tasks.row.counts",
+    name: "Tasks — per-row 'N instances · N triggers' summary",
+    description: "{instances} and {triggers} are the counts.",
+    defaultValue: "{instances} instances · {triggers} triggers",
+  },
+  { key: "super_admin.tasks.status.enabled", name: "Tasks — Enabled badge", defaultValue: "Enabled" },
+  { key: "super_admin.tasks.status.disabled", name: "Tasks — Disabled badge", defaultValue: "Disabled" },
+  { key: "super_admin.tasks.dialog.title_label", name: "Tasks dialog — Title field", defaultValue: "Title" },
+  { key: "super_admin.tasks.dialog.description_label", name: "Tasks dialog — Description field (optional)", defaultValue: "Description (optional)" },
+  { key: "super_admin.tasks.dialog.create", name: "Tasks dialog — Create submit", defaultValue: "Create task" },
+
+  // ─── Task editor ─────────────────────────────────────────────────────────
+  { key: "super_admin.tasks.editor.details_section", name: "Task editor — 'Details' section title", defaultValue: "Task details" },
+  { key: "super_admin.tasks.editor.title_label", name: "Task editor — Title field", defaultValue: "Title" },
+  { key: "super_admin.tasks.editor.description_label", name: "Task editor — Description field", defaultValue: "Description" },
+  { key: "super_admin.tasks.editor.predicate_label", name: "Task editor — Predicate field", defaultValue: "Auto-complete predicate" },
+  { key: "super_admin.tasks.editor.predicate_manual", name: "Task editor — manual sentinel option label", defaultValue: "Manual / trust user (no predicate)" },
+  {
+    key: "super_admin.tasks.editor.predicate_manual_hint",
+    name: "Task editor — hint text under the manual sentinel",
+    defaultValue: "No auto-complete check. Tasks complete only when the user clicks 'Mark complete' or an admin marks it complete on their behalf.",
+  },
+  { key: "super_admin.tasks.editor.triggers_section", name: "Task editor — 'Triggers' section title", defaultValue: "Triggers" },
+  {
+    key: "super_admin.tasks.editor.triggers_description",
+    name: "Task editor — Triggers section description",
+    defaultValue: "At least one trigger is required. Add multiple to combine paths (e.g. signup AND manual assign).",
+  },
+  { key: "super_admin.tasks.editor.triggers_empty", name: "Task editor — empty triggers state", defaultValue: "No triggers yet — click 'Add trigger' above." },
+  { key: "super_admin.tasks.editor.add_trigger", name: "Task editor — Add-trigger button", defaultValue: "Add trigger" },
+  { key: "super_admin.tasks.editor.trigger.signup", name: "Task editor — 'Signup' trigger kind label", defaultValue: "On signup" },
+  { key: "super_admin.tasks.editor.trigger.manual_assign", name: "Task editor — 'Manual assign' trigger kind label", defaultValue: "Manual assign only" },
+  { key: "super_admin.tasks.editor.trigger.recurring", name: "Task editor — 'Recurring' trigger kind label", defaultValue: "Recurring (every N days)" },
+  { key: "super_admin.tasks.editor.trigger.specific_date", name: "Task editor — 'Specific date' trigger kind label", defaultValue: "Specific date(s)" },
+  { key: "super_admin.tasks.editor.trigger.interval_label", name: "Task editor — interval-days input label", defaultValue: "Interval (days)" },
+  { key: "super_admin.tasks.editor.trigger.dates_label", name: "Task editor — dates textarea label", defaultValue: "Dates (one YYYY-MM-DD per line)" },
+  { key: "super_admin.tasks.editor.save_button", name: "Task editor — Save button", defaultValue: "Save task" },
+  { key: "super_admin.tasks.editor.save_failed", name: "Task editor — save-failed fallback", defaultValue: "Could not save task" },
+  { key: "super_admin.tasks.editor.saved", name: "Task editor — save success", defaultValue: "Saved" },
+  { key: "super_admin.tasks.editor.delete_button", name: "Task editor — Delete button", defaultValue: "Delete task" },
+  {
+    key: "super_admin.tasks.editor.delete_confirm",
+    name: "Task editor — delete confirmation",
+    description: "{title} is replaced with the task title.",
+    defaultValue: "Delete task \"{title}\"? This cannot be undone.",
+  },
+  { key: "super_admin.tasks.editor.delete_failed", name: "Task editor — delete-failed fallback", defaultValue: "Could not delete task" },
+  { key: "super_admin.tasks.editor.enable_button", name: "Task editor — Enable button", defaultValue: "Enable" },
+  { key: "super_admin.tasks.editor.disable_button", name: "Task editor — Disable button", defaultValue: "Disable" },
+  { key: "super_admin.tasks.editor.error.no_triggers", name: "Task editor — error: zero triggers", defaultValue: "Add at least one trigger before saving." },
+  {
+    key: "super_admin.tasks.editor.error.bad_interval",
+    name: "Task editor — error: invalid interval",
+    description: "{idx} is the 1-based trigger number.",
+    defaultValue: "Trigger {idx}: interval (days) must be a positive integer.",
+  },
+  {
+    key: "super_admin.tasks.editor.error.no_dates",
+    name: "Task editor — error: empty dates",
+    description: "{idx} is the 1-based trigger number.",
+    defaultValue: "Trigger {idx}: provide at least one date.",
+  },
+  {
+    key: "super_admin.tasks.editor.error.bad_date",
+    name: "Task editor — error: malformed date",
+    description: "{date} is the offending date string.",
+    defaultValue: "Dates must be in YYYY-MM-DD format; got \"{date}\".",
+  },
+
+  // ─── Admin task instance overview (U8) ───────────────────────────────────
+  {
+    key: "super_admin.nav.task_instances",
+    name: "Super admin nav — Task instances",
+    defaultValue: "Task instances",
+  },
+  {
+    key: "super_admin.task_instances.title",
+    name: "Task instances — page title",
+    defaultValue: "Task instances",
+  },
+  {
+    key: "super_admin.task_instances.description",
+    name: "Task instances — subtitle",
+    defaultValue:
+      "Every TaskInstance across users. Filter by user, task definition, or status; mark a pending instance complete on behalf of its user; manually assign a definition to any user.",
+  },
+  {
+    key: "super_admin.task_instances.empty",
+    name: "Task instances — empty state",
+    defaultValue: "No task instances match these filters.",
+  },
+  {
+    key: "super_admin.task_instances.col.user",
+    name: "Task instances column — User",
+    defaultValue: "User",
+  },
+  {
+    key: "super_admin.task_instances.col.task",
+    name: "Task instances column — Task",
+    defaultValue: "Task",
+  },
+  {
+    key: "super_admin.task_instances.col.status",
+    name: "Task instances column — Status",
+    defaultValue: "Status",
+  },
+  {
+    key: "super_admin.task_instances.col.source",
+    name: "Task instances column — Source",
+    defaultValue: "Source",
+  },
+  {
+    key: "super_admin.task_instances.col.created",
+    name: "Task instances column — Created at",
+    defaultValue: "Created",
+  },
+  {
+    key: "super_admin.task_instances.col.completed",
+    name: "Task instances column — Completed at",
+    defaultValue: "Completed",
+  },
+  {
+    key: "super_admin.task_instances.col.actions",
+    name: "Task instances column — Actions",
+    defaultValue: "Actions",
+  },
+  {
+    key: "super_admin.task_instances.status.pending",
+    name: "Task instances — Pending status badge",
+    defaultValue: "Pending",
+  },
+  {
+    key: "super_admin.task_instances.status.completed",
+    name: "Task instances — Completed status badge",
+    defaultValue: "Completed",
+  },
+  {
+    key: "super_admin.task_instances.filter.user_label",
+    name: "Task instances filter — User ID label",
+    defaultValue: "User ID",
+  },
+  {
+    key: "super_admin.task_instances.filter.user_placeholder",
+    name: "Task instances filter — User ID placeholder",
+    defaultValue: "Paste a user ID",
+  },
+  {
+    key: "super_admin.task_instances.filter.task_label",
+    name: "Task instances filter — Task label",
+    defaultValue: "Task",
+  },
+  {
+    key: "super_admin.task_instances.filter.task_all",
+    name: "Task instances filter — 'All tasks' option",
+    defaultValue: "All tasks",
+  },
+  {
+    key: "super_admin.task_instances.filter.status_label",
+    name: "Task instances filter — Status label",
+    defaultValue: "Status",
+  },
+  {
+    key: "super_admin.task_instances.filter.status_all",
+    name: "Task instances filter — 'All statuses' option",
+    defaultValue: "All statuses",
+  },
+  {
+    key: "super_admin.task_instances.mark_complete",
+    name: "Task instances — Mark complete button",
+    defaultValue: "Mark complete",
+  },
+  {
+    key: "super_admin.task_instances.completing",
+    name: "Task instances — Mark complete pending state",
+    defaultValue: "Completing…",
+  },
+  {
+    key: "super_admin.task_instances.confirm_complete",
+    name: "Task instances — confirm-complete dialog body",
+    description:
+      "{title} is the task title; {email} is the affected user's email.",
+    defaultValue: "Mark \"{title}\" complete for {email}?",
+  },
+  {
+    key: "super_admin.task_instances.error.complete_failed",
+    name: "Task instances — mark-complete failure fallback",
+    defaultValue: "Could not mark this instance complete.",
+  },
+  {
+    key: "super_admin.task_instances.error.load_failed",
+    name: "Task instances — list-fetch failure fallback",
+    defaultValue: "Could not load instances.",
+  },
+  {
+    key: "super_admin.task_instances.load_more",
+    name: "Task instances — Load more button",
+    defaultValue: "Load more",
+  },
+  {
+    key: "super_admin.task_instances.loading_more",
+    name: "Task instances — Load more pending state",
+    defaultValue: "Loading…",
+  },
+  {
+    key: "super_admin.task_instances.assign_button",
+    name: "Task instances — Assign button (header)",
+    defaultValue: "Assign task",
+  },
+  {
+    key: "super_admin.task_instances.assign.title",
+    name: "Task instances assign dialog — title",
+    defaultValue: "Assign a task",
+  },
+  {
+    key: "super_admin.task_instances.assign.subtitle",
+    name: "Task instances assign dialog — subtitle",
+    defaultValue:
+      "Pick a task definition and a target user. The user gets a pending instance and a notification unless the task's predicate already matches their state.",
+  },
+  {
+    key: "super_admin.task_instances.assign.task_label",
+    name: "Task instances assign dialog — Task field",
+    defaultValue: "Task definition",
+  },
+  {
+    key: "super_admin.task_instances.assign.task_empty",
+    name: "Task instances assign dialog — empty task list",
+    defaultValue: "No task definitions exist yet.",
+  },
+  {
+    key: "super_admin.task_instances.assign.user_label",
+    name: "Task instances assign dialog — User ID field",
+    defaultValue: "User ID",
+  },
+  {
+    key: "super_admin.task_instances.assign.user_placeholder",
+    name: "Task instances assign dialog — User ID placeholder",
+    defaultValue: "Paste a user ID",
+  },
+  {
+    key: "super_admin.task_instances.assign.submit",
+    name: "Task instances assign dialog — submit button",
+    defaultValue: "Assign",
+  },
+  {
+    key: "super_admin.task_instances.assign.error.missing_fields",
+    name: "Task instances assign dialog — missing fields error",
+    defaultValue: "Pick a task and provide a user ID.",
+  },
+  {
+    key: "super_admin.task_instances.assign.error.failed",
+    name: "Task instances assign dialog — submission failure fallback",
+    defaultValue: "Could not assign this task.",
+  },
 ];
 
 const TRANSLATIONS_BY_KEY = new Map(KNOWN_TRANSLATIONS.map((t) => [t.key, t]));

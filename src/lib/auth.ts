@@ -15,6 +15,13 @@ declare module "next-auth" {
       avatarUrl: string | null;
       isSuperAdmin: boolean;
       themePreference: string | null;
+      /**
+       * Mirrors `User.taskEmailsOptOut`. Threaded through the JWT
+       * session callback so the notification dispatcher can short-
+       * circuit the email send without an extra DB query when the
+       * dispatch happens inside a request handler. Default false.
+       */
+      taskEmailsOptOut: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -48,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           avatarUrl: user.avatarUrl,
           isSuperAdmin: user.isSuperAdmin,
           themePreference: user.themePreference,
+          taskEmailsOptOut: user.taskEmailsOptOut,
         };
       },
     }),

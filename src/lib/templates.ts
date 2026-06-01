@@ -132,6 +132,28 @@ export const KNOWN_TEMPLATES = [
       ttlMinutes: 1440,
     },
   },
+  {
+    key: "task_created",
+    description:
+      "Sent when a `task_created` notification fires for a user (signup / manual assign / backfill / recurring / specific-date trigger paths) and the user has not opted out of task notification emails.",
+    variables: ["taskTitle", "taskDescription", "taskUrl"],
+    fallback: {
+      subject: "You have a new task: {{taskTitle}}",
+      bodyText:
+        "Hi,\n\n" +
+        "{{taskTitle}} — {{taskDescription}}\n\n" +
+        "Mark it complete here: {{taskUrl}}\n",
+      bodyHtml:
+        "<p>Hi,</p>\n" +
+        "<p><strong>{{taskTitle}}</strong> — {{taskDescription}}</p>\n" +
+        '<p>Mark it complete here: <a href="{{taskUrl}}">{{taskUrl}}</a></p>',
+    },
+    sampleVars: {
+      taskTitle: "Upload your profile picture",
+      taskDescription: "Add an avatar so your team can recognise you.",
+      taskUrl: "http://localhost:3000/tasks",
+    },
+  },
 ] as const;
 
 export type KnownTemplateKey = (typeof KNOWN_TEMPLATES)[number]["key"];

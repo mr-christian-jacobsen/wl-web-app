@@ -28,6 +28,7 @@ export const ProfileUserDTO = registry.register(
       email: z.string().email(),
       name: z.string(),
       languageId: z.string().nullable(),
+      taskEmailsOptOut: z.boolean(),
     })
     .openapi("ProfileUser"),
 );
@@ -240,6 +241,186 @@ export const SyncTranslationsResultDTO = registry.register(
       skipped: z.number().int().min(0),
     })
     .openapi("SyncTranslationsResult"),
+);
+
+/**
+ * One trigger row attached to a Task definition (U7). The DB column
+ * `dateList` is newline-joined `YYYY-MM-DD`; the editor and the
+ * `(create|update)TaskSchema` validators carry it as an array on the
+ * wire, but the read-side shape (returned by `GET` on the editor) is
+ * still the storage shape because the editor splits on '\n' itself.
+ */
+export const TaskTriggerDTO = registry.register(
+  "TaskTrigger",
+  z
+    .object({
+      id: z.string(),
+      kind: z.enum(["signup", "manual_assign", "recurring", "specific_date"]),
+      intervalDays: z.number().int().min(1).nullable(),
+      dateList: z
+        .string()
+        .nullable()
+        .openapi({
+          description:
+            "Newline-joined YYYY-MM-DD strings for specific_date triggers; null for every other kind.",
+        }),
+    })
+    .openapi("TaskTrigger"),
+);
+
+/**
+ * Admin task definition summary returned by `GET
+ * /api/super-admin/tasks` (the list) and the POST/PATCH/GET
+ * single-task endpoints (the detail variant additionally inlines the
+ * trigger list).
+ */
+export const TaskDTO = registry.register(
+  "Task",
+  z
+    .object({
+      id: z.string(),
+      title: z.string(),
+      description: z.string().nullable(),
+      predicateKey: z
+        .string()
+        .nullable()
+        .openapi({
+          description:
+            "One of `KNOWN_PREDICATES` keys from `src/lib/predicates.ts`, or null for the 'manual / trust user' sentinel.",
+        }),
+      enabled: z.boolean(),
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+      instanceCount: z.number().int().min(0).openapi({
+        description:
+          "Count of TaskInstance rows referencing this task. Used by the admin list + delete-refuse check.",
+      }),
+      triggerCount: z.number().int().min(0).optional().openapi({
+        description:
+          "Count of TaskTrigger rows. Only present on list responses; the detail GET includes the full `triggers` array instead.",
+      }),
+      triggers: z.array(TaskTriggerDTO).optional().openapi({
+        description:
+          "Inlined trigger list. Present on detail GET / POST / PATCH responses; absent from list summaries.",
+      }),
+    })
+    .openapi("Task"),
+);
+
+/**
+ * Per-user task instance returned by the admin assign endpoint (and
+ * later by the user list / admin overview endpoints in U8/U9). The
+ * shape matches the Prisma row directly because the assign endpoint
+ * returns `manuallyAssignInstance`'s output verbatim.
+ */
+export const TaskInstanceDTO = registry.register(
+  "TaskInstance",
+  z
+    .object({
+      id: z.string(),
+      taskId: z.string(),
+      userId: z.string(),
+      status: z.enum(["pending", "completed"]).openapi({ example: "pending" }),
+      source: z
+        .enum(["predicate", "user", "admin"])
+        .nullable()
+        .openapi({
+          description:
+            "Provenance of the completed status. Null while the instance is still pending.",
+        }),
+      signature: z.string().openapi({
+        description:
+          'Uniqueness key per KTD10 — e.g. "signup", "manual:<iso>", "backfill:<iso>", "recurring:<iso>", "specific-date:<YYYY-MM-DD>".',
+      }),
+      completedAt: z.string().datetime().nullable(),
+      assignedByAdminId: z.string().nullable(),
+      completedByAdminId: z.string().nullable(),
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+    })
+    .openapi("TaskInstance"),
+);
+
+/**
+ * Per-user task instance with the joined User + Task fields the admin
+ * global instance overview table needs to render (U8 — R23, R24).
+ * Mirrors the `select` shape in `GET /api/super-admin/tasks/instances`
+ * exactly so the wire format and the DTO stay in lockstep.
+ *
+ * Returned shape uses ISO strings for the date fields (the handler
+ * `.toISOString()`s them on the way out) so downstream consumers
+ * (Swagger UI, generated clients) get a predictable string type.
+ */
+export const TaskInstanceWithUserAndTaskDTO = registry.register(
+  "TaskInstanceWithUserAndTask",
+  z
+    .object({
+      id: z.string(),
+      taskId: z.string(),
+      userId: z.string(),
+      status: z.enum(["pending", "completed"]),
+      source: z.enum(["predicate", "user", "admin"]).nullable(),
+      signature: z.string(),
+      completedAt: z.string().datetime().nullable(),
+      assignedByAdminId: z.string().nullable(),
+      completedByAdminId: z.string().nullable(),
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+      user: z.object({
+        id: z.string(),
+        email: z.string().email(),
+        name: z.string(),
+      }),
+      task: z.object({
+        id: z.string(),
+        title: z.string(),
+      }),
+    })
+    .openapi("TaskInstanceWithUserAndTask"),
+);
+
+/**
+ * In-app notification (R13) returned by `GET /api/notifications`. The
+ * dropdown surface needs the linked `TaskInstance` + its parent `Task`
+ * title so the row can render a label and an "open task" link without
+ * a second request — the include is therefore part of the DTO, not
+ * fetched separately.
+ *
+ * `taskInstanceId` is nullable to mirror the schema (the FK is
+ * `onDelete: SetNull`, so a notification can outlive its instance and
+ * still appear in the dropdown after the row has been pruned).
+ */
+export const NotificationDTO = registry.register(
+  "Notification",
+  z
+    .object({
+      id: z.string(),
+      userId: z.string(),
+      type: z.string().openapi({
+        description:
+          "Notification type discriminator. v1 only emits `task_created`; the field exists to leave room for future types without a schema migration.",
+        example: "task_created",
+      }),
+      taskInstanceId: z.string().nullable(),
+      unread: z.boolean(),
+      createdAt: z.string().datetime(),
+      taskInstance: z
+        .object({
+          id: z.string(),
+          status: z.enum(["pending", "completed"]),
+          task: z.object({
+            id: z.string(),
+            title: z.string(),
+            predicateKey: z.string().nullable(),
+          }),
+        })
+        .nullable()
+        .openapi({
+          description:
+            "Inlined parent TaskInstance + Task so the dropdown can render the title and link to the task without a second round-trip. Null when the instance has been deleted (the FK is onDelete: SetNull).",
+        }),
+    })
+    .openapi("Notification"),
 );
 
 // ---------------------------------------------------------------------------

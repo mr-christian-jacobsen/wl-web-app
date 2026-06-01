@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getServerT } from "@/lib/translations.server";
 
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
@@ -11,12 +13,22 @@ export default async function SuperAdminLayout({ children }: { children: React.R
 
   const t = await getServerT();
 
+  // Admins also receive `task_created` notifications — they're regular
+  // users with the `isSuperAdmin` flag. Render the bell in the admin
+  // chrome too so notifications reach them on `/super-admin/*` pages,
+  // mirroring the dashboard layout's SSR-prop pattern (no fetch flash).
+  const initialUnreadCount = await prisma.notification.count({
+    where: { userId: session.user.id, unread: true },
+  });
+
   // Single place to declare nav links so the markup stays compact and
   // adding/reordering doesn't require editing two parallel arrays.
   const links: Array<{ href: string; key: string; muted?: boolean }> = [
     { href: "/super-admin", key: "super_admin.nav.overview" },
     { href: "/super-admin/users", key: "super_admin.nav.users" },
     { href: "/super-admin/surveys", key: "super_admin.nav.surveys" },
+    { href: "/super-admin/tasks", key: "super_admin.nav.tasks" },
+    { href: "/super-admin/tasks/instances", key: "super_admin.nav.task_instances" },
     { href: "/super-admin/languages", key: "super_admin.nav.languages" },
     { href: "/super-admin/translations", key: "super_admin.nav.translations" },
     { href: "/super-admin/email-templates", key: "super_admin.nav.email_templates" },
@@ -40,7 +52,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             {t("super_admin.title")}
           </h1>
         </div>
-        <nav className="flex flex-wrap gap-2 text-sm">
+        <nav className="flex flex-wrap items-center gap-2 text-sm">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -55,6 +67,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
               {t(l.key)}
             </Link>
           ))}
+          <NotificationBell initialUnreadCount={initialUnreadCount} />
         </nav>
       </header>
       {children}

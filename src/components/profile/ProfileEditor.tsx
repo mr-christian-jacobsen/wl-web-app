@@ -19,6 +19,7 @@ type User = {
   avatarUrl: string | null;
   languageId: string | null;
   themePreference: string | null;
+  taskEmailsOptOut: boolean;
 };
 
 export type LanguageOption = {
@@ -98,6 +99,10 @@ export function ProfileEditor({
       >
         <ThemeToggle initial={initialTheme} />
       </Section>
+      <TaskEmailsSection
+        user={user}
+        onUpdated={(taskEmailsOptOut) => update({ taskEmailsOptOut })}
+      />
       <PasswordSection />
       <Section title={t("profile.section.signout.title")}>
         <button
@@ -392,6 +397,64 @@ function LanguageSection({
           <StatusLine status={status} />
         </div>
       </form>
+    </Section>
+  );
+}
+
+function TaskEmailsSection({
+  user,
+  onUpdated,
+}: {
+  user: User;
+  onUpdated: (taskEmailsOptOut: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const [optedOut, setOptedOut] = useState<boolean>(user.taskEmailsOptOut);
+  const [pending, setPending] = useState(false);
+  const [status, setStatus] = useState<Status>({ kind: "idle" });
+
+  async function onToggle(next: boolean) {
+    if (next === optedOut) return;
+    setPending(true);
+    setStatus({ kind: "idle" });
+    // Optimistic flip; rolled back on failure.
+    const prev = optedOut;
+    setOptedOut(next);
+
+    const res = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ taskEmailsOptOut: next }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      setOptedOut(prev);
+      setStatus({ kind: "err", msg: body?.error ?? "Update failed" });
+      setPending(false);
+      return;
+    }
+    const body = (await res.json()) as { user: { taskEmailsOptOut: boolean } };
+    onUpdated(body.user.taskEmailsOptOut);
+    setStatus({ kind: "ok", msg: "Saved" });
+    setPending(false);
+  }
+
+  return (
+    <Section
+      title={t("profile.task_emails_optout.label")}
+      description={t("profile.task_emails_optout.description")}
+    >
+      <label className="flex cursor-pointer items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          checked={optedOut}
+          onChange={(e) => onToggle(e.target.checked)}
+          disabled={pending}
+          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500 dark:border-slate-700 dark:bg-slate-900"
+        />
+        <span>{t("profile.task_emails_optout.label")}</span>
+      </label>
+      <StatusLine status={status} />
     </Section>
   );
 }

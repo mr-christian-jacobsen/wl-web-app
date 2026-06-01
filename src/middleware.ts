@@ -5,7 +5,7 @@ import { authConfig } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const PROTECTED = ["/profile", "/super-admin"];
+const PROTECTED = ["/profile", "/tasks", "/super-admin"];
 const SUPER_ADMIN_ONLY = ["/super-admin"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
