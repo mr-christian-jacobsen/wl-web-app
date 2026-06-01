@@ -152,6 +152,42 @@ its templates first. (The `User.language` relation is
 `onDelete: SetNull` — users with that preference simply revert to
 the default.)
 
+## Tasks and in-app notifications
+
+Multi-trigger task system: admin defines `Task` rows in `/super-admin/tasks`; users see their `TaskInstance` rows on `/tasks` plus a header notification bell. Originating brainstorm + plan live at `docs/brainstorms/2026-05-31-tasks-and-notifications-requirements.md` and `docs/plans/2026-05-31-001-feat-tasks-and-notifications-plan.md`. The hybrid scheduler shape is captured separately at `docs/solutions/architecture-patterns/hybrid-lazy-eval-admin-tick-scheduler.md` (SOL-2026-013).
+
+- **Admin CRUD** — `/super-admin/tasks` lists definitions; `/super-admin/tasks/[id]` is the editor (title, description, optional predicate, one or more triggers, enabled toggle). Trigger kinds: `signup`, `manual_assign`, `recurring` (with `intervalDays`), `specific_date` (with `dates: string[]` serialized on write to `TaskTrigger.dateList` as newline-joined `YYYY-MM-DD`). The editor opens a `BackfillDialog` on the disabled→enabled transition that lets admin choose notify vs silent.
+- **Per-user instances** — `/tasks` shows pending + collapsed completed sections with a one-click mark-complete control. `(dashboard)/tasks/page.tsx` fires `markNotificationsReadForUser(session.user.id)` on visit (R16). `TaskInstance` is unique on `(taskId, userId, signature)` where `signature` follows a canonical table per trigger type — see KTD10 in the plan: `"signup"` / `"manual:<assignedAtIso>"` / `"backfill:<enabledAtIso>"` / `"recurring:<cycleStartIso>"` / `"specific-date:<YYYY-MM-DD>"`.
+- **Predicate catalog split** — `src/lib/predicates.catalog.ts` holds the static metadata (key, name, description, deepLinkPath) and is **client-safe** (no Prisma imports). `src/lib/predicates.ts` layers the server-side `evaluate(userId)` closures on top and re-exports `KNOWN_PREDICATES` for server callers. Adding a new predicate touches both files. The split exists because client components (notably `AdminTaskEditor.tsx`) iterate the catalog for rendering — see SOL-2026-012 for the bundle-split surprise that motivated it.
+- **Action-handler hooks** — every action that satisfies a predicate must fire-and-forget `reevaluatePendingInstancesForUser(session.user.id)` after the successful write. Current hook sites: `src/app/api/profile/avatar/route.ts` (POST + DELETE), `src/app/api/profile/route.ts`, `src/app/api/auth/verify-email/route.ts` (both signup + change purposes). New predicates that need event-driven evaluation must wire their own handler hook.
+
+### Kill switch (mandatory contract)
+
+`tasks.scheduler.enabled` SystemSetting (default `true`) is the **first short-circuit in every dispatch entry point**: `maybeProcessUserTriggers`, `runGlobalTick`, `dispatchTaskCreatedFor`, `runBackfillForDefinition`, `manuallyAssignInstance`, `createInstancesForSignup`. Flipping it from `/super-admin/system-settings` instantly silences all task dispatch (notifications, emails, new instance creation) without a redeploy. **Any new dispatch path you add must include this check** — a half-wired switch is worse than no switch.
+
+### Tick endpoint shared-secret auth (only `/api/super-admin/**` route NOT using `requireSuperAdmin()`)
+
+`POST /api/super-admin/tasks/tick` authenticates via an `X-Tick-Secret` header matched against the `tasks.tick.secret` SystemSetting (`isSecret: true`, generated on first read via `getOrCreateTickSecret()` and rotatable from the admin UI). Compared with `crypto.timingSafeEqual` after a length pre-check. The endpoint is callable by external cron services (GitHub Actions / cron-job.org / equivalent) that can't hold a NextAuth JWT cookie — this is the only admin route exempt from the session-cookie gate, and the exemption is intentional and documented in the handler.
+
+### Admin attribution columns
+
+`TaskInstance.assignedByAdminId` and `TaskInstance.completedByAdminId` are nullable FKs to `User` (both `onDelete: SetNull` so admin deletion preserves the audit reference's nullability rather than the instance row). Populated by:
+
+- `manuallyAssignInstance(taskId, userId, assignedByAdminId)` — even when the predicate immediately matches and the instance is created completed silently, `assignedByAdminId` is still set, so the audit trail captures the admin action.
+- `POST /api/super-admin/tasks/instances/[id]/complete` — sets `completedByAdminId: session.user.id` when the admin marks complete on behalf.
+
+Both columns are null for self-completions and predicate-driven completions. The v1 admin UI does not surface them; they exist for compliance / forensics work that doesn't require a breaking migration.
+
+### Backfill email cap
+
+`runBackfillForDefinition(taskId, { notify, enabledAt })` reads `tasks.backfill.maxEmailsPerEnable` (default 1000) and refuses with **HTTP 422 `{ code: 'EMAIL_CAP_EXCEEDED', eligible, cap }`** when `notify === true` and the eligible-pending count would exceed the cap. The silent path is unaffected. Admins can raise the cap temporarily from `/super-admin/system-settings`.
+
+### Notifications
+
+`Notification` is a separate entity with `unread Boolean` independent of `TaskInstance.status`. `dispatchTaskCreatedFor(taskInstance)` is **instance-idempotent**: pre-checks for an existing `(taskInstanceId, type: 'task_created')` Notification before creating a new one, so concurrent dispatch paths (lazy-eval + tick, or two ticks racing) can't produce duplicate notifications/emails. Email delivery follows the existing per-language `EmailTemplate` flow with template key `task_created`; the user-level opt-out lives on `User.taskEmailsOptOut` (default `false` — emails enabled) and surfaces as a toggle on `/profile`. **In-app notifications cannot be disabled**; only email delivery is opt-out-able.
+
+The `NotificationBell` component is rendered identically in `(dashboard)/layout.tsx` and `src/app/super-admin/layout.tsx` (both pass a server-rendered `initialUnreadCount` prop). The dropdown polls `/api/notifications` every 30s while open, fires `POST /api/notifications/mark-read` on open, and is hard-scoped to `session.user.id` (no `userId` query param accepted — IDOR boundary).
+
 ## OpenAPI / Swagger docs
 
 Every `/api/**` route is documented through a hand-registered OpenAPI spec, served at `/api/openapi` (JSON body) and rendered by Swagger UI at `/super-admin/api-docs`. Both are admin-gated (the layout guard plus `requireSuperAdmin()` on the spec endpoint).
